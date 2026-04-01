@@ -38,7 +38,7 @@ The probability theory must be strictly grounded in Mathlib4's measure theory li
 ## 4. Mathlib Context (Lean 4)
 You are operating strictly in **Lean 4** and utilizing the **Mathlib4** library.
 * Mathlib4 already contains a formalization of the Sauer-Shelah Lemma, which bounds the growth function: $\Pi_\mathcal{C}(m) \le \sum_{i=0}^d \binom{m}{i} \le (\frac{em}{d})^d$. Do not reinvent this combinatorial bound.
-* Your task is to build the any necessary computational learning theory frameworks, probability and symmetrization architecture, and then seamlessly invoke Mathlib's existing Sauer-Shelah result to bound $\Pi_\mathcal{C}(2m) \le (\frac{2em}{d})^d$ to complete the final algebraic substitution required for the ultimate sample complexity bound.
+* Your task is to build the necessary computational learning theory, probability and symmetrization architecture, and then seamlessly invoke Mathlib's existing Sauer-Shelah result to bound $\Pi_\mathcal{C}(2m) \le (\frac{2em}{d})^d$ to complete the final algebraic substitution required for the ultimate sample complexity bound.
 
 ## 5. Watch for Syntax Hallucinations
 You must write idiomatic Lean 4 code.
