@@ -72,7 +72,7 @@ lemma secondHalf_combineHalves {m : ℕ} (S₁ S₂ : Fin m → X) :
   simp only [secondHalf, combineHalves]
   have hlt : ¬ (m + i.val < m) := by omega
   rw [dif_neg hlt]
-  exact congrArg S₂ (Fin.ext (by omega))
+  exact congrArg S₂ (Fin.ext (by simp [Nat.add_sub_cancel_left]))
 
 /-- sampleMeasure is a probability measure when D is. -/
 instance sampleMeasure_isProbability (D : Measure X) [IsProbabilityMeasure D] (m : ℕ) :

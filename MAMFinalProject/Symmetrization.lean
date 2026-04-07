@@ -3,6 +3,7 @@ import MAMFinalProject.Hypergeometric
 import MAMFinalProject.GhostSample
 import Mathlib.Data.Real.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
 
 open MeasureTheory ProbabilityTheory Real Set Classical
@@ -99,25 +100,58 @@ From the symmetrization bound, we can solve for m:
 -/
 
 /-- **Sample size bound**: If m satisfies the sample complexity condition,
-then Pr[B] ≤ δ/2. -/
+then Pr[B] ≤ δ/2.
+
+Note: `hm` uses natural logarithm throughout, matching the (1/2)^{εm/2} bound via
+the identity (1/2)^{εm/2} = exp(-(εm/2) · log 2). -/
 theorem sample_size_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
     (ε δ : ℝ) (m : ℕ)
     (hε : ε > 0) (hδ : δ > 0)
-    (hm : (2 / ε) * (Real.log (growthFunction C (2 * m)) + Real.log (2 / δ)) ≤ m) :
+    (hm : (2 / ε) * (Real.log (growthFunction C (2 * m)) + Real.log (2 / δ)) ≤
+          m * Real.log 2) :
     (sampleMeasure D (2 * m)) {S | EventB C c D ε m S} ≤ ENNReal.ofReal (δ / 2) := by
-  -- The proof: apply symmetrization_bound, then verify the exponential bound ≤ δ/2.
-  -- From hm: ε*m/2 ≥ log(Π_C(2m)) + log(2/δ)
-  -- So: Π_C(2m) * (1/2)^{εm/2} = Π_C(2m) * exp(-εm·log(2)/2)
-  --                               ≤ exp(log Π_C(2m) - εm·log(2)/2)
-  --                               ≤ exp(log(δ/2)) = δ/2
   calc (sampleMeasure D (2 * m)) {S | EventB C c D ε m S}
       ≤ ENNReal.ofReal ((growthFunction C (2 * m) : ℝ) * (1 / 2 : ℝ) ^ (ε * m / 2)) :=
         symmetrization_bound C c D ε m hε
     _ ≤ ENNReal.ofReal (δ / 2) := by
         apply ENNReal.ofReal_le_ofReal
-        -- Need: Π_C(2m) * (1/2)^{εm/2} ≤ δ/2
-        -- This follows from the hypothesis hm via logarithms.
-        sorry
+        -- Case split: if growthFunction = 0, LHS = 0 ≤ δ/2 trivially.
+        rcases Nat.eq_zero_or_pos (growthFunction C (2 * m)) with h0 | hgpos
+        · simp only [h0, Nat.cast_zero, zero_mul]
+          linarith
+        · -- growthFunction > 0; use logarithm argument.
+          have hg_pos : (0 : ℝ) < growthFunction C (2 * m) := by exact_mod_cast hgpos
+          have hlog2 : (0 : ℝ) < Real.log 2 := Real.log_pos one_lt_two
+          have hδ2 : (0 : ℝ) < δ / 2 := by linarith
+          -- (1/2)^(ε*m/2) = exp(-(ε*m/2) * log 2)  [via Real.rpow]
+          have hrpow : (1 / 2 : ℝ) ^ (ε * ↑m / 2) =
+              Real.exp (-(ε * ↑m / 2) * Real.log 2) := by
+            rw [Real.rpow_def_of_pos (by norm_num)]
+            congr 1
+            rw [Real.log_div (by norm_num) (by norm_num), Real.log_one, zero_sub]
+            ring
+          rw [hrpow]
+          -- Take log of both sides: log(g * exp(-...)) ≤ log(δ/2)
+          rw [← Real.log_le_log_iff (by positivity) hδ2]
+          rw [Real.log_mul hg_pos.ne' (Real.exp_pos _).ne', Real.log_exp]
+          -- Goal: log g - (ε*m/2) * log 2 ≤ log(δ/2) = log δ - log 2
+          rw [show Real.log (δ / 2) = Real.log δ - Real.log 2 from
+            Real.log_div hδ.ne' (by norm_num)]
+          -- From hm: (2/ε) * (log g + log(2/δ)) ≤ m * log 2
+          -- Rearrange: log g + log(2/δ) ≤ ε*m/2 * log 2
+          have hm' : Real.log ↑(growthFunction C (2 * m)) + Real.log (2 / δ) ≤
+              ε * ↑m / 2 * Real.log 2 := by
+            have hε2 : (0 : ℝ) < ε / 2 := by positivity
+            calc Real.log ↑(growthFunction C (2 * m)) + Real.log (2 / δ)
+                = (2 / ε) * (Real.log ↑(growthFunction C (2 * m)) + Real.log (2 / δ)) * (ε / 2) := by
+                    field_simp
+              _ ≤ (↑m * Real.log 2) * (ε / 2) := by
+                    apply mul_le_mul_of_nonneg_right hm hε2.le
+              _ = ε * ↑m / 2 * Real.log 2 := by ring
+          -- log(2/δ) = log 2 - log δ
+          have hlog2dδ : Real.log (2 / δ) = Real.log 2 - Real.log δ := by
+            rw [Real.log_div (by norm_num) hδ.ne']
+          linarith
 
 end SampleSizeBound

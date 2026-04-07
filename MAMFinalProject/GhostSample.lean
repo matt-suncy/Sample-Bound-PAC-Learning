@@ -23,32 +23,34 @@ The lemma shows Pr[A] ≤ 2·Pr[B], which is the key step in the symmetrization 
 
 section Events
 
-variable (C : Set (Concept X)) (c : Concept X) (D : Measure X) (ε : ℝ) (m : ℕ)
-
 /-- Hypothesis h is "bad": its true error is at least ε. -/
-def isBadHypothesis [IsProbabilityMeasure D] (h : Concept X) : Prop :=
+def isBadHypothesis (D : Measure X) [IsProbabilityMeasure D] (c : Concept X) (ε : ℝ)
+    (h : Concept X) : Prop :=
   ε ≤ (trueError D h c).toReal
 
 /-- Hypothesis h is consistent with sample S₁ (zero empirical error on S₁). -/
-def isConsistentWith (h c : Concept X) (S₁ : Fin m → X) : Prop :=
+def isConsistentWith (h c : Concept X) {m : ℕ} (S₁ : Fin m → X) : Prop :=
   ∀ i : Fin m, ¬ isError h c (S₁ i)
 
 /-- Hypothesis h makes ≥ εm/2 errors on S₂. -/
-def hasManyErrors (h c : Concept X) (S₂ : Fin m → X) : Prop :=
+def hasManyErrors (ε : ℝ) (m : ℕ) (h c : Concept X) (S₂ : Fin m → X) : Prop :=
   ε * m / 2 ≤ errorCount h c S₂
 
 /-- **Event A**: there exists a bad hypothesis consistent with the first half of S. -/
-def EventA (S : Fin (2 * m) → X) : Prop :=
-  ∃ h ∈ C, isBadHypothesis C c D ε h ∧ isConsistentWith m h c (firstHalf S)
+def EventA (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
+    (ε : ℝ) (m : ℕ) (S : Fin (2 * m) → X) : Prop :=
+  ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c (firstHalf S)
 
 /-- **Event B**: there exists a bad hypothesis consistent with S₁ and with ≥ εm/2 errors on S₂. -/
-def EventB (S : Fin (2 * m) → X) : Prop :=
-  ∃ h ∈ C, isBadHypothesis C c D ε h ∧ isConsistentWith m h c (firstHalf S)
-           ∧ hasManyErrors m h c ε (secondHalf S)
+def EventB (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
+    (ε : ℝ) (m : ℕ) (S : Fin (2 * m) → X) : Prop :=
+  ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c (firstHalf S)
+           ∧ hasManyErrors ε m h c (secondHalf S)
 
 /-- Event B implies Event A. -/
-lemma eventB_implies_eventA (S : Fin (2 * m) → X) (hB : EventB C c D ε m S) :
-    EventA C c D ε m S := by
+lemma eventB_implies_eventA (C : Set (Concept X)) (c : Concept X) (D : Measure X)
+    [IsProbabilityMeasure D] (ε : ℝ) (m : ℕ) (S : Fin (2 * m) → X)
+    (hB : EventB C c D ε m S) : EventA C c D ε m S := by
   obtain ⟨h, hh, hbad, hcons, _⟩ := hB
   exact ⟨h, hh, hbad, hcons⟩
 
@@ -91,7 +93,7 @@ lemma bernoulli_error_lower_bound
     (hε : ε > 0) (hm : 8 / ε ≤ (m : ℝ)) (hm_pos : 0 < m)
     (hbad : ε ≤ (trueError D h c).toReal) :
     ENNReal.ofReal (1 / 2) ≤
-      (sampleMeasure D m) {S₂ : Fin m → X | hasManyErrors m h c ε S₂} := by
+      (sampleMeasure D m) {S₂ : Fin m → X | hasManyErrors ε m h c S₂} := by
   -- The proof uses Chebyshev's inequality on the sum of iid Bernoulli error indicators.
   -- Let p = (trueError D h c).toReal ≥ ε. The error count on m points has:
   --   E[errors] = m * p ≥ m * ε
