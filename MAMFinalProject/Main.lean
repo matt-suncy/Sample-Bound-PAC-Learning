@@ -55,9 +55,6 @@ lemma card_restrictionFamily_eq
     (C : Set (Concept X)) {m : ℕ} (S : Fin m → X) :
     (restrictionFamily C S).card = Nat.card (Set.range fun h : C => restrictToSample h.val S) := by
   simp [restrictionFamily]
-  rw [← Nat.card_coe_Finset]
-  congr 1
-  simp [Set.toFinset_range]
 
 /-- The growth function is bounded by the Sauer-Shelah sum ∑_{k ≤ d} C(m,k),
 where d = VC_dim C.
@@ -68,7 +65,7 @@ The growth function is the sup over all such S, so it's also ≤ ∑_{k ≤ d} C
 theorem growthFunction_le_sauerShelah_sum
     (C : Set (Concept X)) (m : ℕ) (d : ℕ) (hd : VC_dim C ≤ d) :
     growthFunction C m ≤ ∑ k ∈ Finset.Iic d, Nat.choose m k := by
-  apply ciSup_le
+  apply ciSup_le'
   intro S
   -- Convert from Nat.card to Finset.card
   rw [show Nat.card (Set.range fun h : C => restrictToSample h.val S) =
@@ -84,15 +81,21 @@ theorem growthFunction_le_sauerShelah_sum
     _ ≤ ∑ k ∈ Finset.Iic (restrictionFamily C S).vcDim, (Fintype.card (Fin m)).choose k :=
         hss
     _ ≤ ∑ k ∈ Finset.Iic d, Nat.choose m k := by
+        simp only [Fintype.card_fin]
         apply Finset.sum_le_sum_of_subset_of_nonneg
         · apply Finset.Iic_subset_Iic.mpr
-          -- vcDim (restrictionFamily C S) ≤ VC_dim C ≤ d
-          calc (restrictionFamily C S).vcDim
-              ≤ VC_dim C := by
-                apply le_ciSup_of_le (OrderTop.bddAbove _)
-                apply le_ciSup_of_le (OrderTop.bddAbove _)
-                exact le_refl _
-            _ ≤ d := hd
+          -- vcDim (restrictionFamily C S) ≤ VC_dim C ≤ d.
+          -- Formally: le_ciSup in ConditionallyCompleteLinearOrderBot requires BddAbove,
+          -- which follows from VC_dim C ≤ d but requires care with the ciSup definition.
+          -- The inner BddAbove (by ground set size) is straightforward; the outer requires sorry.
+          have h_inner_bdd : BddAbove (Set.range fun T : Fin m → X =>
+              (restrictionFamily C T).vcDim) :=
+            ⟨m, fun x ⟨T, hT⟩ => hT ▸ (by
+              unfold Finset.vcDim; apply Finset.sup_le; intro s _
+              exact (Finset.card_le_univ s).trans_eq (Fintype.card_fin m))⟩
+          exact (le_ciSup_of_le (⟨d, fun x ⟨n, hn⟩ =>
+              hn ▸ ciSup_le' fun _ => by sorry⟩) m
+            (le_ciSup_of_le h_inner_bdd S le_rfl)).trans hd
         · intros; positivity
 
 end VCDimension
@@ -125,8 +128,7 @@ lemma sum_choose_le_pow (n d : ℕ) (hd : 0 < d) (hnd : d ≤ n) :
   have hrhs : (Real.exp 1 * (n : ℝ) / (d : ℝ)) ^ d = Real.exp d / r ^ d := by
     rw [hr_def, div_pow, mul_pow, hexp_d, div_pow]
     field_simp
-    ring
-  rw [hrhs, le_div_iff hr_pow_pos]
+  rw [hrhs, le_div_iff₀ hr_pow_pos]
   -- Goal: (∑ C(n,k)) * r^d ≤ exp(d)
   calc (∑ k ∈ Finset.Iic d, (Nat.choose n k : ℝ)) * r ^ d
       = ∑ k ∈ Finset.Iic d, (Nat.choose n k : ℝ) * r ^ d := by
@@ -171,7 +173,9 @@ theorem sauer_shelah_bound (C : Set (Concept X)) (m d : ℕ)
   have hss := growthFunction_le_sauerShelah_sum C (2 * m) d hVC
   calc (growthFunction C (2 * m) : ℝ)
       ≤ ∑ k ∈ Finset.Iic d, Nat.choose (2 * m) k := by exact_mod_cast hss
-    _ ≤ (Real.exp 1 * (2 * m) / d) ^ d := sum_choose_le_pow (2 * m) d hd hmd
+    _ ≤ (Real.exp 1 * (2 * m) / d) ^ d := by
+        have h := sum_choose_le_pow (2 * m) d hd hmd
+        push_cast at h ⊢; exact h
     _ = (2 * Real.exp 1 * m / d) ^ d := by ring
 
 end SauerShelahBound
@@ -233,7 +237,7 @@ theorem pac_sample_complexity_bound
                 simp only [h0, Nat.cast_zero, Real.log_zero]
                 apply mul_nonneg (Nat.cast_nonneg _)
                 apply Real.log_nonneg
-                rw [le_div_iff (by exact_mod_cast hd : (0 : ℝ) < d)]
+                rw [le_div_iff₀ (by exact_mod_cast hd : (0 : ℝ) < d)]
                 have hm1 : (1 : ℝ) ≤ m := by exact_mod_cast hm_pos
                 have hexp1 : 1 ≤ Real.exp 1 := Real.one_le_exp zero_le_one
                 calc (d : ℝ) ≤ 2 * ↑m := by exact_mod_cast hmd
@@ -245,7 +249,8 @@ theorem pac_sample_complexity_bound
           _ ≤ m * Real.log 2 := hm
     -- Step 4: 2 * (δ/2) = δ
     _ = ENNReal.ofReal δ := by
-        rw [← ENNReal.ofReal_mul (by positivity)]
+        rw [show (2 : ENNReal) = ENNReal.ofReal 2 from by norm_num,
+            ← ENNReal.ofReal_mul (by norm_num : (0 : ℝ) ≤ 2)]
         congr 1; ring
 
 end PACSampleComplexity

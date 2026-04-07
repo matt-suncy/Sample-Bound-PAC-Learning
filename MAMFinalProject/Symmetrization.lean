@@ -36,21 +36,31 @@ noncomputable def growthFunction (C : Set (Concept X)) (m : ℕ) : ℕ :=
 /-- For any fixed sample S, the number of distinct labelings is at most growthFunction. -/
 lemma card_labelings_le_growthFunction
     (C : Set (Concept X)) (m : ℕ) (S : Fin m → X) :
-    Nat.card (Set.range fun h : C => restrictToSample h.val S) ≤ growthFunction C m :=
-  le_ciSup_of_le (OrderTop.bddAbove _) S le_rfl
+    Nat.card (Set.range fun h : C => restrictToSample h.val S) ≤ growthFunction C m := by
+  apply le_ciSup_of_le _ S le_rfl
+  refine ⟨2 ^ m, ?_⟩
+  rintro x ⟨T, rfl⟩
+  calc Nat.card (Set.range fun h : C => restrictToSample h.val T)
+      ≤ Nat.card (Set.univ : Set (Finset (Fin m))) :=
+          Nat.card_mono Set.finite_univ (Set.subset_univ _)
+    _ = 2 ^ m := by
+        rw [Nat.card_univ, Nat.card_eq_fintype_card, Fintype.card_finset, Fintype.card_fin]
 
 /-- The growth function is bounded above by 2^m (all possible subsets of Fin m). -/
 lemma growthFunction_le_two_pow (C : Set (Concept X)) (m : ℕ) :
     growthFunction C m ≤ 2 ^ m := by
-  apply ciSup_le
-  intro S
-  calc Nat.card (Set.range fun h : C => restrictToSample h.val S)
-      ≤ Nat.card (Finset (Fin m)) := by
-        apply Nat.card_le_card_of_injOn id (fun _ _ => Set.mem_univ _)
-        simp [Set.InjOn]
-    _ = 2 ^ m := by
-        rw [Nat.card_eq_fintype_card]
-        simp [Fintype.card_finset_fin_le]
+  unfold growthFunction
+  rcases isEmpty_or_nonempty (Fin m → X) with hE | hNE
+  · haveI := hE
+    rw [ciSup_of_empty]
+    exact Nat.zero_le _
+  · apply ciSup_le
+    intro S
+    calc Nat.card (Set.range fun h : C => restrictToSample h.val S)
+        ≤ Nat.card (Set.univ : Set (Finset (Fin m))) :=
+            Nat.card_mono Set.finite_univ (Set.subset_univ _)
+      _ = 2 ^ m := by
+          rw [Nat.card_univ, Nat.card_eq_fintype_card, Fintype.card_finset, Fintype.card_fin]
 
 end GrowthFunction
 
