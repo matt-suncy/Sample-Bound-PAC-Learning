@@ -38,9 +38,7 @@ Fully proved, no sorries.
 - [x] `growthFunction` — `⨆ S, Nat.card (range (restrictToSample h S))`
 - [x] `card_labelings_le_growthFunction`
 - [x] `growthFunction_le_two_pow`
-- [x] `symmetrization_bound` — structure proved (2026-04-08); has 2 sorries:
-  - `hconsist_bound`: computing P[consistent with S₁] = (1-p)^m via Measure.pi_pi
-  - union bound step: disintegration/conditional measure argument
+- [x] `symmetrization_bound` — `per_h_bound` and `hconsist_bound` proved (2026-04-08); 1 sorry remains: union bound step (disintegration)
 - [x] `sample_size_bound` — if `(2/ε)·(log Π + log(2/δ)) ≤ m·log 2` then `Pr[B] ≤ δ/2` *(depends on `symmetrization_bound`)*
 
 ### `Main.lean` — Sauer-Shelah pipeline and final theorem
@@ -72,17 +70,7 @@ have hB_meas : MeasurableSet B_prod := by sorry
 - A measurable σ-algebra on concept classes, or
 - A different proof strategy that avoids measurability of C-existentials.
 
-### 2. `Symmetrization.lean:~109` — `hconsist_bound` (inside `symmetrization_bound`)
-```
-have hconsist_bound :
-    (sampleMeasure D (2 * m)) {S | isConsistentWith h c (firstHalf S)} ≤
-    ENNReal.ofReal ((1 - p) ^ m) := by sorry
-```
-**What's needed:** Show that the consistent-with-S₁ event has probability (1-p)^m using:
-1. `sampleMeasure_eq_prod` + `Measure.prod_prod` to reduce to P₁ {S₁ | consistent}
-2. `Measure.pi_pi` to compute the product measure = ∏ D{x | ¬error} = (1-p)^m
-
-### 3. `Symmetrization.lean:~165` — union bound step (inside `symmetrization_bound`)
+### 2. `Symmetrization.lean` — union bound step (inside `symmetrization_bound`)
 ```
 -- P[EventB] ≤ growthFunction · (1/2)^{εm/2}
 sorry

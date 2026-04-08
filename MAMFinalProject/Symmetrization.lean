@@ -110,14 +110,51 @@ theorem symmetrization_bound
     -- P[consistent with first half] = (1-p)^m in ENNReal
     -- (Uses sampleMeasure_eq_prod + Measure.prod_prod + Measure.pi_pi + complement)
     have hconsist_bound :
-        (sampleMeasure D (2 * m)) {S | isConsistentWith h c (firstHalf S)} ≤
+        (sampleMeasure D (2 * m)) {S | isConsistentWith h c (firstHalf S)} =
         ENNReal.ofReal ((1 - p) ^ m) := by
-      -- The consistent set is f⁻¹(A ×ˢ univ) where f = (firstHalf, secondHalf).
-      -- By sampleMeasure_eq_prod: P = P₁.prod P₁, so measure = P₁(A) · P₁(univ) = P₁(A).
-      -- P₁{S₁ | ∀i, ¬error(S₁ i)} = (Measure.pi) (pi univ (fun _ => {x|¬error}))
-      --   = ∏ i, D{x|¬error} = (1-p)^m  [by Measure.pi_pi and complement]
-      sorry
-    apply hconsist_bound.trans
+      -- Measurability of the error set
+      have herrSet : MeasurableSet {x : X | isError h c x} := by
+        rw [show {x : X | isError h c x} = symmDiff h.val c.val from by
+          ext x; simp [isError, symmDiff, Set.mem_symmDiff]; tauto]
+        exact h.2.symmDiff c.2
+      -- The consistent set equals Set.pi univ (complement of error set)
+      have hconsist_pi : {S₁ : Fin m → X | isConsistentWith h c S₁} =
+          Set.pi Set.univ (fun _ => {x | isError h c x}ᶜ) := by
+        ext S; simp [isConsistentWith, Set.mem_pi, Set.mem_compl_iff, Set.mem_setOf_eq]
+      -- Measurability of the consistent-S₁ set
+      have hconsist_meas : MeasurableSet {S₁ : Fin m → X | isConsistentWith h c S₁} :=
+        hconsist_pi ▸ MeasurableSet.univ_pi (fun _ => herrSet.compl)
+      -- Measurability of splitting map
+      have hf_meas : Measurable (fun S : Fin (2 * m) → X => (firstHalf S, secondHalf S)) :=
+        Measurable.prod (measurable_pi_lambda _ fun i => measurable_pi_apply _)
+                        (measurable_pi_lambda _ fun i => measurable_pi_apply _)
+      -- Preimage equality: consistent-S₁ event = f⁻¹(A ×ˢ univ)
+      have hconsist_preimage :
+          {S : Fin (2 * m) → X | isConsistentWith h c (firstHalf S)} =
+          (fun S => (firstHalf S, secondHalf S)) ⁻¹' ({S₁ | isConsistentWith h c S₁} ×ˢ Set.univ) := by
+        ext S; simp [isConsistentWith]
+      -- Reduce to P₁ using sampleMeasure_eq_prod + prod_prod
+      rw [hconsist_preimage,
+          ← Measure.map_apply hf_meas (hconsist_meas.prod MeasurableSet.univ),
+          sampleMeasure_eq_prod D m, Measure.prod_prod, measure_univ, mul_one]
+      -- Compute P₁ {S₁ | consistent} = ∏ i, D{x|¬error} = (1-p)^m
+      rw [show sampleMeasure D m = Measure.pi (fun _ : Fin m => D) from rfl,
+          hconsist_pi, Measure.pi_pi,
+          Finset.prod_const, Finset.card_univ, Fintype.card_fin,
+          prob_compl_eq_one_sub herrSet]
+      -- D {x | isError} = trueError D h c = ENNReal.ofReal p
+      have hD_err : D {x : X | isError h c x} = ENNReal.ofReal p := by
+        have hset_eq : {x : X | isError h c x} = symmDiff h.val c.val := by
+          ext x; simp [isError, symmDiff, Set.mem_symmDiff]; tauto
+        rw [hset_eq]
+        exact (ENNReal.ofReal_toReal (measure_lt_top D _).ne).symm
+      rw [hD_err]
+      -- 1 - ENNReal.ofReal p = ENNReal.ofReal (1 - p)
+      have h1p_ennreal : (1 : ENNReal) - ENNReal.ofReal p = ENNReal.ofReal (1 - p) := by
+        rw [← ENNReal.ofReal_one]
+        exact (ENNReal.ofReal_sub 1 hp_pos.le).symm
+      rw [h1p_ennreal, ← ENNReal.ofReal_pow (by linarith)]
+    apply hconsist_bound.le.trans
     -- (1-p)^m ≤ (1/2)^{εm/2} via exp bound
     apply ENNReal.ofReal_le_ofReal
     have h1p : 0 ≤ 1 - p := by linarith

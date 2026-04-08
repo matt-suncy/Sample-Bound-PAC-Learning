@@ -120,18 +120,17 @@ Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/sec
 **Status:** sorry
 **Risk (MEDIUM):** Either add `Countable C` hypothesis, or use a measurable σ-algebra on concept classes.
 
-### [OPEN] `hconsist_bound` — computing P[consistent with S₁] = (1-p)^m
+### [RESOLVED] `hconsist_bound` — computing P[consistent with S₁] = (1-p)^m (proved 2026-04-08)
 **File:** `Symmetrization.lean` inside `symmetrization_bound`
-**Issue:** Need to show:
-```
-(sampleMeasure D (2 * m)) {S | isConsistentWith h c (firstHalf S)} ≤ ENNReal.ofReal ((1 - p) ^ m)
-```
-**Approach:**
-1. Use `sampleMeasure_eq_prod` + `Measure.prod_prod` to reduce to P₁ {S₁ | consistent}
-2. Show `{S₁ | consistent} = Set.pi Set.univ (fun _ => {x | ¬isError h c x})`
-3. Apply `Measure.pi_pi` to get `∏ i : Fin m, D {x | ¬isError h c x}`
-4. Use `prob_compl_eq_one_sub` + ENNReal arithmetic to get `(1-p)^m`
-**Risk (LOW-MEDIUM):** Tedious but straightforward ENNReal manipulations.
+**Proof:**
+1. `sampleMeasure_eq_prod` + `Measure.map_apply` + `Measure.prod_prod` + `measure_univ` to reduce to `P₁ {S₁ | consistent}`
+2. `{S₁ | consistent} = Set.pi univ (fun _ => {x | isError}ᶜ)` via `ext` + `simp`
+3. `MeasurableSet.univ_pi` for measurability
+4. `Measure.pi_pi` + `Finset.prod_const` + `Finset.card_univ` + `Fintype.card_fin` → `D {x | ¬error}^m`
+5. `prob_compl_eq_one_sub` → `(1 - D {x | error})^m`
+6. `ENNReal.ofReal_toReal` to get `D {x | error} = ENNReal.ofReal p`
+7. `ENNReal.ofReal_sub` + `ENNReal.ofReal_one` → `1 - ENNReal.ofReal p = ENNReal.ofReal (1-p)`
+8. `ENNReal.ofReal_pow` → `ENNReal.ofReal (1-p)^m = ENNReal.ofReal ((1-p)^m)`
 
 ### [OPEN] Union bound step — disintegration argument
 **File:** `Symmetrization.lean` inside `symmetrization_bound`
@@ -157,5 +156,9 @@ Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/sec
 - `measurable_measure_prod_mk_left` is wrong; the correct name is `measurable_measure_prodMk_left`.
 - `ENNReal.mul_div_cancel (h₀ : a ≠ 0) (h∞ : a ≠ ∞) : a * (b / a) = b` — correct form for `2 * (1/2) = 1`.
 - `set_option maxHeartbeats N in` must appear BEFORE the docstring of a declaration, not after.
+- `MeasurableSet.univ_pi [Countable δ] {t : ∀ i, Set (X i)} (ht : ∀ i, MeasurableSet (t i)) : MeasurableSet (Set.pi Set.univ t)` — use this for pi-sets over all indices.
+- `ENNReal.ofReal_sub (a : ℝ) {b : ℝ} (hb : 0 ≤ b) : ENNReal.ofReal (a - b) = ENNReal.ofReal a - ENNReal.ofReal b` — note the first arg is explicit, second implicit.
+- `ENNReal.ofReal_toReal {a : ℝ≥0∞} (h : a ≠ ⊤) : ENNReal.ofReal a.toReal = a` — use `.symm` to go from ENNReal to `ofReal p` form.
+- `Measure.pi_pi [∀ i, SigmaFinite (μ i)] (s : ∀ i, Set (α i)) : Measure.pi μ (Set.pi Set.univ s) = ∏ i, μ i (s i)` — IsProbabilityMeasure gives SigmaFinite automatically.
 - `variance_sum_pi` requires explicit named args `(ι := ...) (μ := ...) (X := ...)` to avoid typeclass inference failure.
 - `integral_comp_eval` for `∫ S, f(S i) ∂Measure.pi μ = ∫ f ∂μ i` — named args `(μ := ...) (i := ...)` recommended.
