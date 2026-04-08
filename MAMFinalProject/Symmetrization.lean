@@ -5,6 +5,8 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
+import Mathlib.MeasureTheory.Constructions.Pi
+import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 
 open MeasureTheory ProbabilityTheory Real Set Classical
 
@@ -89,11 +91,72 @@ theorem symmetrization_bound
     (ε : ℝ) (m : ℕ) (hε : ε > 0) :
     (sampleMeasure D (2 * m)) {S | EventB C c D ε m S} ≤
     ENNReal.ofReal ((growthFunction C (2 * m) : ℝ) * (1 / 2 : ℝ) ^ (ε * m / 2)) := by
-  -- The proof proceeds by:
-  -- 1. For each fixed 2m-sample, at most growthFunction C (2m) labelings are consistent with S₁
-  -- 2. For each such labeling making l ≥ εm/2 errors, the probability it's all in S₂ is ≤ (1/2)^l
-  -- 3. Combine via union bound.
-  -- The formal proof requires a Radon-Nikodym / disintegration argument on the sample space.
+  -- STEP 1: For each bad h ∈ C, the B_h event (consistent with S₁ AND many errors on S₂)
+  -- has probability ≤ (1/2)^{εm/2}. Proof:
+  --   P[B_h] ≤ P[consistent] = (1-p)^m ≤ exp(-pm) ≤ exp(-εm) ≤ (1/2)^{εm/2}
+  -- where p = trueError ≥ ε and the last step uses log 2 ≤ 2.
+  have per_h_bound : ∀ h : Concept X, h ∈ C → isBadHypothesis D c ε h →
+      (sampleMeasure D (2 * m))
+        {S | isConsistentWith h c (firstHalf S) ∧ hasManyErrors ε m h c (secondHalf S)} ≤
+      ENNReal.ofReal ((1 / 2 : ℝ) ^ (ε * (m : ℝ) / 2)) := by
+    intro h _ hbad
+    set p := (trueError D h c).toReal with hp_def
+    have hp_ε : ε ≤ p := hbad
+    have hp_pos : 0 < p := lt_of_lt_of_le hε hp_ε
+    have hp_le1 : p ≤ 1 :=
+      ENNReal.toReal_le_of_le_ofReal zero_le_one (ENNReal.ofReal_one ▸ prob_le_one)
+    -- P[consistent ∧ many errors] ≤ P[consistent]
+    apply (measure_mono Set.inter_subset_left).trans
+    -- P[consistent with first half] = (1-p)^m in ENNReal
+    -- (Uses sampleMeasure_eq_prod + Measure.prod_prod + Measure.pi_pi + complement)
+    have hconsist_bound :
+        (sampleMeasure D (2 * m)) {S | isConsistentWith h c (firstHalf S)} ≤
+        ENNReal.ofReal ((1 - p) ^ m) := by
+      -- The consistent set is f⁻¹(A ×ˢ univ) where f = (firstHalf, secondHalf).
+      -- By sampleMeasure_eq_prod: P = P₁.prod P₁, so measure = P₁(A) · P₁(univ) = P₁(A).
+      -- P₁{S₁ | ∀i, ¬error(S₁ i)} = (Measure.pi) (pi univ (fun _ => {x|¬error}))
+      --   = ∏ i, D{x|¬error} = (1-p)^m  [by Measure.pi_pi and complement]
+      sorry
+    apply hconsist_bound.trans
+    -- (1-p)^m ≤ (1/2)^{εm/2} via exp bound
+    apply ENNReal.ofReal_le_ofReal
+    have h1p : 0 ≤ 1 - p := by linarith
+    -- Use log 2 ≤ 2 (since 2 ≤ exp 2 by add_one_le_exp)
+    have hlog2_le2 : Real.log 2 ≤ 2 :=
+      calc Real.log 2
+          ≤ Real.log (Real.exp 2) :=
+            Real.log_le_log (by norm_num) (by linarith [Real.add_one_le_exp 2])
+        _ = 2 := Real.log_exp 2
+    -- (1-p)^m ≤ exp(-pm): from 1 - x ≤ exp(-x) applied m times
+    have hstep1 : (1 - p) ^ m ≤ Real.exp (-(p * m)) := by
+      calc (1 - p) ^ m
+          ≤ Real.exp (-p) ^ m :=
+            pow_le_pow_left₀ h1p (by linarith [Real.one_sub_le_exp_neg p]) m
+        _ = Real.exp (-(p * m)) := by rw [← Real.exp_nat_mul]; ring_nf
+    -- exp(-pm) ≤ exp(-εm): since p ≥ ε
+    have hstep2 : Real.exp (-(p * m)) ≤ Real.exp (-(ε * m)) := by
+      apply Real.exp_le_exp.mpr
+      have : 0 ≤ (m : ℝ) := Nat.cast_nonneg m
+      linarith [mul_le_mul_of_nonneg_right hp_ε this]
+    -- exp(-εm) ≤ (1/2)^{εm/2}: since -εm ≤ -(εm/2)·log2 (as log 2 ≤ 2)
+    have hstep3 : Real.exp (-(ε * m)) ≤ (1 / 2 : ℝ) ^ (ε * (m : ℝ) / 2) := by
+      rw [show (1/2 : ℝ) ^ (ε * ↑m / 2) = Real.exp (-(ε * ↑m / 2) * Real.log 2) from by
+        rw [Real.rpow_def_of_pos (by norm_num : (0:ℝ) < 1/2)]
+        congr 1
+        rw [Real.log_div (by norm_num) (by norm_num), Real.log_one, zero_sub]
+        ring]
+      apply Real.exp_le_exp.mpr
+      have : 0 ≤ (m : ℝ) := Nat.cast_nonneg m
+      nlinarith [mul_nonneg hε.le this]
+    linarith
+  -- STEP 2: Union bound over labelings.
+  -- EventB ⊆ ⋃_{labeling F} B_F, with at most growthFunction C (2*m) many non-empty B_F's.
+  -- For each fixed 2m-sample S, the distinct labelings of C on S form a set of size
+  -- ≤ growthFunction C (2*m). The union bound then gives:
+  --   P[EventB] ≤ growthFunction · (1/2)^{εm/2}
+  -- This step requires a disintegration / conditional measure argument to integrate
+  -- the pointwise (per-sample) labeling count over the 2m-sample distribution.
+  -- The key infrastructure needed: RegularConditionalKernel or Kernel.disintegration.
   sorry
 
 end UnionBound

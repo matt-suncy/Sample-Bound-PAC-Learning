@@ -240,6 +240,7 @@ theorem pac_sample_complexity_bound
                 rw [le_div_iff₀ (by exact_mod_cast hd : (0 : ℝ) < d)]
                 have hm1 : (1 : ℝ) ≤ m := by exact_mod_cast hm_pos
                 have hexp1 : 1 ≤ Real.exp 1 := Real.one_le_exp zero_le_one
+                simp only [one_mul]
                 calc (d : ℝ) ≤ 2 * ↑m := by exact_mod_cast hmd
                   _ = 2 * 1 * ↑m := by ring
                   _ ≤ 2 * Real.exp 1 * ↑m := by gcongr

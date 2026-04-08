@@ -1,6 +1,6 @@
 # Error Log — PAC Learning Lean 4 Formalization
 
-Last updated: 2026-04-07
+Last updated: 2026-04-08
 
 Tracks errors, type mismatches, failed approaches, and gotchas encountered during formalization.
 Update this file as new errors are found or resolved.
@@ -39,10 +39,6 @@ Update this file as new errors are found or resolved.
 **Error:** `(1/2 : ℝ) ^ (ε * m / 2)` is `HPow.hPow` (real power), needed `rpow_def_of_pos` to convert to `exp`/`log` form, but signature was called incorrectly.
 **Resolution:** Used `Real.rpow_def_of_pos (by norm_num)` with `show` to clarify the base.
 
----
-
-## Open / Unresolved Errors and Known Risks
-
 ### [RESOLVED] `sampleMeasure_eq_prod` — proved 2026-04-08
 **File:** `GhostSample.lean`
 **Resolution:** Composed two measure-preserving maps:
@@ -51,36 +47,101 @@ Update this file as new errors are found or resolved.
 Key lemma: `Equiv.piCongrLeft_symm_apply (fun _ => X) f S j` (note: `P` and `e` are both explicit in the variable section — must pass both).
 Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/secondHalf]` + `congr 1` (which closes by definitional equality of `Fin` values).
 
-### [OPEN] `bernoulli_error_lower_bound` — Chebyshev in Mathlib4
-**File:** `GhostSample.lean:104`
-**Issue:** Need Chebyshev's inequality for a sum of iid Bernoulli indicators under `sampleMeasure D m` (which is `Measure.pi`). Mathlib has `ProbabilityTheory.meas_ge_le_chebyshev_div_sq` but connecting it to the sum-of-coordinates function over `Measure.pi` requires:
-1. Defining the sum function `fun S => errorCount h c S` as a measurable function
-2. Computing its expectation and variance under `Measure.pi`
-3. Applying Chebyshev
-**Risk (HIGH):** This is the most technically demanding sorry. May need `ProbabilityTheory.iIndepFun` to establish that coordinate projections are independent under `Measure.pi`, then use `Finset.sum` measurability and variance additivity. Several intermediate lemmas may be needed.
+### [RESOLVED] `bernoulli_error_lower_bound` — proved 2026-04-08
+**File:** `GhostSample.lean`
+**Resolution:** Full Chebyshev proof using:
+- `variance_sum_pi (ι := Fin m) (μ := ...) (X := ...)` for variance additivity (explicit named args needed)
+- `integral_finset_sum` + `integral_comp_eval` for E[Y] = mp (term-mode calc to avoid simp matching issues)
+- `memLp_of_bounded` for L² membership of the indicator function
+- `div_le_iff₀` (not `div_le_iff`) for the Chebyshev arithmetic step
+- `tsub_le_tsub_left` (not `ENNReal.tsub_le_tsub_left`) for the ENNReal complement step
+- `measurableSet_le measurable_const hY_meas` (standalone, not dot notation)
+- `ENNReal.one_ne_top` (fully qualified, not `one_ne_top`)
+- `set_option maxHeartbeats 800000 in` placed BEFORE the docstring
 
-### [OPEN] `ghost_sample_bound` — Fubini / disintegration
-**File:** `GhostSample.lean:149`
-**Issue:** Need to integrate the function `fun S₁ => P₂ {S₂ | EventB(combineHalves S₁ S₂)}` against `P₁` and compare to `P₁ {S₁ | EventA S₁}`. Requires:
-1. `sampleMeasure_eq_prod` to be proved first
-2. Measurability of `{S | EventA ...}` and `{S | EventB ...}` (existential over `C`)
-3. `MeasureTheory.lintegral_prod` or `Measure.prod_apply` for the Fubini step
-**Risk (MEDIUM):** Measurability of `EventA`/`EventB` (existentials over possibly uncountable `C`) is non-trivial. May need to assume or add a `Countable C` hypothesis, or restrict to countably-generated concept classes.
+### [RESOLVED] `ghost_sample_bound` — structure proved 2026-04-08
+**File:** `GhostSample.lean`
+**Resolution:** Structure complete with:
+- `measurable_measure_prodMk_left` (not `measurable_measure_prod_mk_left`) for slice measurability
+- `mul_le_mul_right hBsec_lb 2` (not `ENNReal.mul_le_mul_left'`, which is deprecated since 2025-11-27)
+- `ENNReal.mul_div_cancel two_ne_zero ENNReal.ofNat_ne_top` for `2 * (1/2) = 1`
+- `show` before `by_cases` to beta-reduce the lambda from `lintegral_mono`
+- 2 sorries remain: `hA_meas`, `hB_meas` (measurability of C-existential sets)
 
-### [OPEN] `symmetrization_bound` — union bound over labelings
-**File:** `Symmetrization.lean:87`
-**Issue:** The union bound `Pr[B] ≤ Π_C(2m) · (1/2)^{εm/2}` requires:
-1. Conditioning on the 2m-sample S
-2. For each of the (≤ growthFunction) distinct labelings of S, bounding the probability it falls in EventB by (1/2)^{εm/2}
-3. Summing (union bound): `Measure.measure_iUnion_le` or `Finset.sum`-based estimate
-**Risk (HIGH):** This requires a conditional measure argument (disintegration of `sampleMeasure D (2m)` over the 2m-sample). This is the most structurally complex sorry. One possible shortcut: work entirely in the "fixed sample" world and use `Measure.count` or a finset-level argument, but this may not typecheck cleanly with the existing `sampleMeasure` setup.
+### [RESOLVED] `symmetrization_bound` structure — 2026-04-08
+**File:** `Symmetrization.lean`
+**Resolution:** Proof structure written with:
+- `per_h_bound` subproof showing `P[B_h] ≤ (1/2)^{εm/2}` via:
+  - `pow_le_pow_left₀` (not `pow_le_pow_left`, which doesn't exist) for `(1-p)^m ≤ exp(-p)^m`
+  - `Real.one_sub_le_exp_neg` from `Mathlib.Analysis.Complex.Exponential`
+  - `Real.exp_nat_mul` + `ring_nf` for `exp(-p)^m = exp(-pm)`
+  - `Real.exp_le_exp.mpr` for monotonicity
+  - `Real.add_one_le_exp 2` + `Real.log_le_log` + `Real.log_exp` for `log 2 ≤ 2`
+  - `Real.rpow_def_of_pos` to convert `(1/2)^{εm/2}` to exp form
+  - `nlinarith` for the final numeric inequality
+- 2 sorries remain: `hconsist_bound` and the union bound step (see below)
 
-### [WATCH] Measurability of event sets
-**Files:** `GhostSample.lean`, `Symmetrization.lean`
-**Issue:** The sets `{S | EventA C c D ε m S}` and `{S | EventB C c D ε m S}` involve existential quantification over `h ∈ C`. For these to be measurable (needed for `sampleMeasure` to apply), either:
-- `C` must be countable (so the union over `h ∈ C` is countable), or
-- A measurable selection argument is needed.
-**Status:** Currently no measurability hypothesis on `C` is assumed. This may cause issues when trying to apply measure theory lemmas that require measurable sets. **Keep this in mind for all four remaining sorries.**
+### [RESOLVED] `simp_rw [integral_finset_sum]` pattern matching
+**File:** `GhostSample.lean`
+**Error:** `rw [integral_finset_sum ...]` failed because the syntactic pattern `∑ i ∈ s, f i a` didn't match `∑ i : Fin m, errInd (S i)`.
+**Resolution:** Used `integral_finset_sum _ (fun i _ => hint i)` in term-mode inside a `calc` block instead of `rw`.
+
+### [RESOLVED] `integral_comp_eval` application
+**File:** `GhostSample.lean`
+**Error:** `simp_rw [integral_comp_eval herrInd_aesm]` failed — couldn't unify `(fun _ : Fin m => D) i` with `D`.
+**Resolution:** Used `apply Finset.sum_congr rfl; intro i _; exact (integral_comp_eval (μ := ...) (i := i) herrInd_aesm).trans hEerrInd`.
+
+### [RESOLVED] `variance_sum_pi` typeclass inference
+**File:** `GhostSample.lean`
+**Error:** `variance_sum_pi` failed to infer `ι`; also the function parameter is named `X` not `f`.
+**Resolution:** Used explicit `(ι := Fin m) (μ := ...) (X := ...)` named arguments; rewrote `Y` to explicit sum form via `funext` + `simp [Finset.sum_apply]`.
+
+### [RESOLVED] `one_sub_le_exp_neg` location
+**File:** `Symmetrization.lean`
+**Note:** `Real.one_sub_le_exp_neg` is in `Mathlib.Analysis.Complex.Exponential`, not `Mathlib.Analysis.SpecialFunctions.Exp`. Imported via `MAMFinalProject.GhostSample` which imports `Mathlib.MeasureTheory.Integral.Pi`.
+
+### [RESOLVED] `pow_le_pow_left` → `pow_le_pow_left₀`
+**File:** `Symmetrization.lean`
+**Error:** `pow_le_pow_left` is not in scope (it's `pow_le_pow_left'` in unbundled setting, but that's for ordered monoids without `0 ≤`).
+**Resolution:** Use `pow_le_pow_left₀` from `Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic` — signature `(ha : 0 ≤ a) (hab : a ≤ b) : ∀ n, a^n ≤ b^n`.
+
+### [RESOLVED] `Main.lean` calc `lhs is ↑d but expected 1 * ↑d`
+**File:** `Main.lean:243`
+**Error:** After `rw [le_div_iff₀ ...]`, the goal had `1 * ↑d ≤ ...` but the `calc` started with `(d : ℝ)`.
+**Resolution:** Added `simp only [one_mul]` before the `calc` block to normalize `1 * ↑d` to `↑d`.
+
+---
+
+## Open / Unresolved Errors and Known Risks
+
+### [OPEN] `hA_meas`, `hB_meas` — measurability of C-existential sets
+**File:** `GhostSample.lean` inside `ghost_sample_bound`
+**Issue:** The sets `A_prod = {(S₁,S₂) | ∃ h ∈ C, bad ∧ consistent with S₁}` and similarly `B_prod` need `MeasurableSet`. Since C may be uncountable, the existential `∃ h ∈ C` is not automatically a countable union.
+**Status:** sorry
+**Risk (MEDIUM):** Either add `Countable C` hypothesis, or use a measurable σ-algebra on concept classes.
+
+### [OPEN] `hconsist_bound` — computing P[consistent with S₁] = (1-p)^m
+**File:** `Symmetrization.lean` inside `symmetrization_bound`
+**Issue:** Need to show:
+```
+(sampleMeasure D (2 * m)) {S | isConsistentWith h c (firstHalf S)} ≤ ENNReal.ofReal ((1 - p) ^ m)
+```
+**Approach:**
+1. Use `sampleMeasure_eq_prod` + `Measure.prod_prod` to reduce to P₁ {S₁ | consistent}
+2. Show `{S₁ | consistent} = Set.pi Set.univ (fun _ => {x | ¬isError h c x})`
+3. Apply `Measure.pi_pi` to get `∏ i : Fin m, D {x | ¬isError h c x}`
+4. Use `prob_compl_eq_one_sub` + ENNReal arithmetic to get `(1-p)^m`
+**Risk (LOW-MEDIUM):** Tedious but straightforward ENNReal manipulations.
+
+### [OPEN] Union bound step — disintegration argument
+**File:** `Symmetrization.lean` inside `symmetrization_bound`
+**Issue:** Need to show P[EventB] ≤ growthFunction(C,2m) · (1/2)^{εm/2} by:
+1. Expressing EventB as a union over at most growthFunction distinct labeling classes
+2. Applying a union bound
+**Risk (HIGH):** For uncountable C, the union over labeling classes requires either:
+- Disintegration / RegularConditionalKernel (hard)
+- A measurable selection theorem
+- `Countable C` hypothesis (simplest workaround)
 
 ---
 
@@ -91,3 +152,10 @@ Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/sec
 - `IsProbabilityMeasure` is an instance, not a hypothesis in the usual sense — it needs to be in scope as `[IsProbabilityMeasure D]`.
 - `ENNReal.ofReal` is needed whenever converting `ℝ`-valued probability bounds to `ENNReal` (the type of `Measure.apply`).
 - `Real.rpow` vs `HPow.hPow`: `(x : ℝ) ^ (y : ℝ)` uses `rpow`; `(x : ℝ) ^ (n : ℕ)` uses `HPow`. Be careful in the `symmetrization_bound` where `ε * m / 2 : ℝ` appears as an exponent.
+- `mul_le_mul_left'` is deprecated since 2025-11-27 in Mathlib; use `mul_le_mul_right` instead.
+- `pow_le_pow_left` does not exist in the expected form; use `pow_le_pow_left₀` (with subscript 0).
+- `measurable_measure_prod_mk_left` is wrong; the correct name is `measurable_measure_prodMk_left`.
+- `ENNReal.mul_div_cancel (h₀ : a ≠ 0) (h∞ : a ≠ ∞) : a * (b / a) = b` — correct form for `2 * (1/2) = 1`.
+- `set_option maxHeartbeats N in` must appear BEFORE the docstring of a declaration, not after.
+- `variance_sum_pi` requires explicit named args `(ι := ...) (μ := ...) (X := ...)` to avoid typeclass inference failure.
+- `integral_comp_eval` for `∫ S, f(S i) ∂Measure.pi μ = ∫ f ∂μ i` — named args `(μ := ...) (i := ...)` recommended.

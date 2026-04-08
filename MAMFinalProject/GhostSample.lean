@@ -83,6 +83,7 @@ lemma error_indicator_mean_ge (D : Measure X) [IsProbabilityMeasure D]
     tauto
   rw [this]; exact hbad
 
+set_option maxHeartbeats 800000 in
 /-- **Key probabilistic lemma**: For a bad hypothesis h, the probability that a fresh
 m-point sample (drawn iid from D) has ≥ εm/2 errors is ≥ 1/2.
 
@@ -98,154 +99,145 @@ lemma bernoulli_error_lower_bound
   -- Setup: let p = true error probability ≥ ε
   set p := (trueError D h c).toReal with hp_def
   have hp_pos : 0 < p := lt_of_lt_of_le hε hbad
-  have hp_le1 : p ≤ 1 := by
-    simp only [hp_def, trueError, Measure.real_def]
-    exact ENNReal.toReal_le_of_le_ofReal zero_le_one (by rw [ENNReal.ofReal_one]; exact prob_le_one)
+  have hp_le1 : p ≤ 1 :=
+    ENNReal.toReal_le_of_le_ofReal zero_le_one (ENNReal.ofReal_one ▸ prob_le_one)
   have hm_real : (0 : ℝ) < (m : ℝ) := Nat.cast_pos.mpr hm_pos
   have hmp_pos : 0 < (m : ℝ) * p := mul_pos hm_real hp_pos
-  -- 1. Define the error indicator function
+  -- 1. Define the error indicator and the error sum Y
   let errInd : X → ℝ := fun x => if isError h c x then 1 else 0
-  -- Measurability of error set
   have herrSet : MeasurableSet {x : X | isError h c x} := by
-    have hset : {x : X | isError h c x} = symmDiff h.val c.val := by
-      ext x; simp [isError, symmDiff, Set.mem_symmDiff]; tauto
-    rw [hset]; exact h.2.symmDiff c.2
-  -- errInd is the indicator of the error set
-  have herrInd_eq : errInd = Set.indicator {x : X | isError h c x} 1 := by
-    funext x; simp [errInd, Set.indicator, Set.mem_setOf_eq]
-  -- errInd is AEStronglyMeasurable under D
-  have herrInd_aesm : AEStronglyMeasurable errInd D := by
-    rw [herrInd_eq]
-    exact ((measurable_const (α := X) (b := (1 : ℝ))).indicator herrSet).aestronglyMeasurable
-  -- errInd is bounded in [0, 1]
-
-  -- errInd ∈ L²(D)
-  have herrInd_memlp : MemLp errInd 2 D := memLp_of_bounded herrInd_range herrInd_aesm 2
-  -- 2. Mean of errInd under D is p
-  have hEerrInd : ∫ x, errInd x ∂D = p := by
-    rw [herrInd_eq, integral_indicator_one herrSet, measureReal_def]
-    congr 1
     have : {x : X | isError h c x} = symmDiff h.val c.val := by
       ext x; simp [isError, symmDiff, Set.mem_symmDiff]; tauto
-    rw [this]; rfl
-  -- 3. Error count as ℝ-valued sum
+    rw [this]; exact h.2.symmDiff c.2
+  have herrInd_eq : errInd = Set.indicator {x : X | isError h c x} 1 := by
+    funext x; simp [errInd, Set.indicator, Set.mem_setOf_eq]
+  have herrInd_meas : Measurable errInd := by
+    rw [herrInd_eq]; exact measurable_const.indicator herrSet
+  have herrInd_aesm : AEStronglyMeasurable errInd D := herrInd_meas.aestronglyMeasurable
+  have herrInd_range : ∀ᵐ x ∂D, errInd x ∈ Set.Icc 0 1 :=
+    Filter.Eventually.of_forall fun x => by
+      simp only [errInd, Set.mem_Icc]; split_ifs <;> norm_num
+  have herrInd_memlp : MemLp errInd 2 D := memLp_of_bounded herrInd_range herrInd_aesm 2
+  -- 2. Mean of errInd = p
+  have hset_eq : {x : X | isError h c x} = symmDiff h.val c.val := by
+    ext x; simp [isError, symmDiff, Set.mem_symmDiff]; tauto
+  have hEerrInd : ∫ x, errInd x ∂D = p := by
+    rw [herrInd_eq, integral_indicator_one herrSet, measureReal_def, hset_eq]
+    rfl
+  -- 3. Error sum Y and its connection to errorCount
   let Y : (Fin m → X) → ℝ := fun S => ∑ i : Fin m, errInd (S i)
-  -- Y equals errorCount cast to ℝ
   have hY_eq : ∀ S : Fin m → X, Y S = (errorCount h c S : ℝ) := fun S => by
-    simp only [Y, errInd, errorCount, Finset.sum_boole, Nat.cast_id]
-    push_cast; rw [Finset.sum_boole]
-  -- hasManyErrors iff ε*m/2 ≤ Y
-  have hMany_iff : ∀ S : Fin m → X, hasManyErrors ε m h c S ↔ ε * m / 2 ≤ Y S := fun S => by
-    simp only [hasManyErrors, ← hY_eq]; constructor <;> intro h <;> exact_mod_cast h
-  -- 4. Y is measurable (sum of measurable functions)
-  have hY_meas : Measurable Y := by
-    unfold_let Y
-    apply Finset.measurable_sum; intro i _
-    apply Measurable.comp _ (measurable_pi_apply i)
-    rw [herrInd_eq]
-    exact (measurable_const (b := (1:ℝ))).indicator herrSet
-  -- Y is bounded in [0, m]
+    simp [Y, errInd, errorCount, Finset.sum_boole]
+  have hMany_iff : ∀ S : Fin m → X, hasManyErrors ε m h c S ↔ ε * ↑m / 2 ≤ Y S := fun S => by
+    unfold hasManyErrors; rw [← hY_eq S]
+  -- 4. Y is measurable and bounded
+  have hY_meas : Measurable Y :=
+    Finset.measurable_sum Finset.univ fun i _ => herrInd_meas.comp (measurable_pi_apply i)
   have hY_range : ∀ᵐ S ∂(sampleMeasure D m), Y S ∈ Set.Icc 0 (m : ℝ) :=
-    Filter.eventually_of_forall fun S => by
-      constructor
-      · apply Finset.sum_nonneg; intro i _; simp [errInd]; split_ifs <;> norm_num
-      · calc Y S ≤ ∑ _ : Fin m, 1 := Finset.sum_le_sum fun i _ => by
-              simp [errInd]; split_ifs <;> norm_num
-          _ = m := by simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin]
-  -- Y ∈ L²(sampleMeasure D m)
+    Filter.Eventually.of_forall fun S => by
+      refine ⟨Finset.sum_nonneg fun i _ => ?_, ?_⟩
+      · simp [errInd]; split_ifs <;> norm_num
+      · calc Y S ≤ ∑ _ : Fin m, 1 :=
+              Finset.sum_le_sum fun i _ => by simp [errInd]; split_ifs <;> norm_num
+          _ = (m : ℝ) := by simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin]
   have hY_memlp : MemLp Y 2 (sampleMeasure D m) :=
     memLp_of_bounded hY_range hY_meas.aestronglyMeasurable 2
   -- 5. Mean of Y = m * p
   have hEY : ∫ S : Fin m → X, Y S ∂(sampleMeasure D m) = (m : ℝ) * p := by
     simp only [Y, sampleMeasure]
-    rw [integral_finset_sum Finset.univ (fun i _ => ?_)]
-    · simp_rw [integral_comp_eval herrInd_aesm, hEerrInd]
-      simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
-    · exact (herrInd_memlp.integrable (by norm_num : (1:ℝ≥0∞) ≤ 2)).comp_measurable
-              (measurable_pi_apply i)
-  -- 6. Variance of errInd ≤ p (using Bhatia-Davis: Var ≤ (1-p)*p ≤ p)
+    -- Integrability of each coordinate function under Measure.pi
+    have hint : ∀ i : Fin m, Integrable (fun S : Fin m → X => errInd (S i))
+        (Measure.pi (fun _ : Fin m => D)) := fun i =>
+      (memLp_of_bounded
+        (Filter.Eventually.of_forall fun S => by
+          show (if isError h c (S i) then (1:ℝ) else 0) ∈ Set.Icc 0 1
+          split_ifs <;> norm_num)
+        ((herrInd_meas.comp (measurable_pi_apply i)).aestronglyMeasurable) 2).integrable
+        (by norm_num)
+    calc ∫ S : Fin m → X, ∑ i : Fin m, errInd (S i) ∂Measure.pi (fun _ : Fin m => D)
+        = ∑ i : Fin m, ∫ S : Fin m → X, errInd (S i) ∂Measure.pi (fun _ : Fin m => D) :=
+            integral_finset_sum _ (fun i _ => hint i)
+      _ = ∑ _ : Fin m, p := by
+            apply Finset.sum_congr rfl; intro i _
+            exact (integral_comp_eval (μ := fun _ : Fin m => D) (i := i) herrInd_aesm).trans
+              hEerrInd
+      _ = (m : ℝ) * p := by
+            simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+  -- 6. Variance of errInd ≤ p
   have hVarerrInd : variance errInd D ≤ p := by
     have hbd := variance_le_sub_mul_sub (μ := D) herrInd_range herrInd_aesm.aemeasurable
-    rw [hEerrInd] at hbd
-    simp only [sub_zero] at hbd
+    rw [hEerrInd] at hbd; simp only [sub_zero] at hbd
     calc variance errInd D ≤ (1 - p) * p := hbd
-      _ ≤ 1 * p := by apply mul_le_mul_of_nonneg_right _ hp_pos.le; linarith
+      _ ≤ 1 * p := mul_le_mul_of_nonneg_right (by linarith) hp_pos.le
       _ = p := one_mul p
-  -- 7. Variance of Y = m * Var[errInd] ≤ m * p
+  -- 7. Variance of Y ≤ m * p
   have hVarY : variance Y (sampleMeasure D m) ≤ (m : ℝ) * p := by
     have hvsumpi : variance Y (sampleMeasure D m) = ∑ _ : Fin m, variance errInd D := by
-      have := variance_sum_pi (μ := fun _ : Fin m => D) (fun _ => herrInd_memlp)
-      simp only [sampleMeasure] at *
-      convert this using 2
-      funext S; simp [Y]
+      -- Rewrite Y and sampleMeasure to explicit forms, then apply variance_sum_pi
+      rw [show Y = ∑ i : Fin m, (fun S : Fin m → X => errInd (S i)) from by
+            funext S
+            show ∑ i : Fin m, errInd (S i) = (∑ i : Fin m, (fun S : Fin m → X => errInd (S i))) S
+            simp [Finset.sum_apply],
+          show sampleMeasure D m = Measure.pi (fun _ : Fin m => D) from rfl]
+      haveI : ∀ i : Fin m, IsProbabilityMeasure ((fun _ : Fin m => D) i) :=
+        fun _ => ‹IsProbabilityMeasure D›
+      have h := variance_sum_pi (ι := Fin m) (μ := fun _ : Fin m => D)
+        (X := fun _ : Fin m => errInd) (fun _ => herrInd_memlp)
+      simp only [Function.const_apply] at h
+      exact h
     rw [hvsumpi]
     calc ∑ _ : Fin m, variance errInd D
         ≤ ∑ _ : Fin m, p := Finset.sum_le_sum fun _ _ => hVarerrInd
       _ = (m : ℝ) * p := by
           simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-  -- 8. Apply Chebyshev with c = m*p/2
+  -- 8. Chebyshev with c = m*p/2
   have hc_pos : 0 < (m : ℝ) * p / 2 := by linarith
   have hCheby := meas_ge_le_variance_div_sq (μ := sampleMeasure D m) hY_memlp hc_pos
-  -- Rewrite using hEY: the Chebyshev event uses E[Y] = m*p
   rw [hEY] at hCheby
-  -- 9. Bound the Chebyshev probability ≤ 1/2
+  -- 9. The Chebyshev bound ≤ 1/2
+  have hmp8 : 8 ≤ (m : ℝ) * p :=
+    calc 8 = 8 / ε * ε := by field_simp
+      _ ≤ (m : ℝ) * ε := mul_le_mul_of_nonneg_right hm hε.le
+      _ ≤ (m : ℝ) * p := mul_le_mul_of_nonneg_left hbad hm_real.le
   have hBound : ENNReal.ofReal (variance Y (sampleMeasure D m) / ((m : ℝ) * p / 2) ^ 2) ≤
                 ENNReal.ofReal (1 / 2) := by
     apply ENNReal.ofReal_le_ofReal
-    have hc2 : ((m : ℝ) * p / 2) ^ 2 > 0 := sq_pos_of_pos hc_pos
-    rw [div_le_div_iff hc2 (by norm_num : (0:ℝ) < 2)]
-    calc variance Y (sampleMeasure D m) * 2
-        ≤ (m : ℝ) * p * 2 := by linarith
-      _ ≤ ((m : ℝ) * p / 2) ^ 2 * 2 := by
-          -- Need: mp * 2 ≤ (mp/2)^2 * 2 ↔ mp ≤ (mp)^2/4 ↔ 4 ≤ mp
-          -- But mp ≥ mε ≥ 8 * ε / ε = 8 ≥ 4. Wait, we need 4 ≤ mp.
-          -- From hm: 8/ε ≤ m, so mε ≥ 8, so mp ≥ mε ≥ 8. So mp ≥ 8 > 4.
-          have hmp8 : 8 ≤ (m : ℝ) * p := by
-            calc 8 = 8 / ε * ε := by field_simp
-              _ ≤ (m : ℝ) * ε := by apply mul_le_mul_of_nonneg_right hm hε.le
-              _ ≤ (m : ℝ) * p := by apply mul_le_mul_of_nonneg_left hbad hm_real.le
-          nlinarith [sq_nonneg ((m : ℝ) * p)]
-  -- 10. The complement of hasManyErrors is a subset of the Chebyshev event
+    rw [div_le_iff₀ (sq_pos_of_pos hc_pos)]
+    calc variance Y (sampleMeasure D m)
+        ≤ (m : ℝ) * p := hVarY
+      _ ≤ 1 / 2 * ((m : ℝ) * p / 2) ^ 2 := by nlinarith [sq_nonneg ((m : ℝ) * p), hmp8]
+  -- 10. Complement of hasManyErrors ⊆ Chebyshev event
   have hSubset : {S : Fin m → X | ¬ hasManyErrors ε m h c S} ⊆
                  {S | (m : ℝ) * p / 2 ≤ |Y S - (m : ℝ) * p|} := by
     intro S hS
     simp only [Set.mem_setOf_eq, hMany_iff, not_le] at hS
     simp only [Set.mem_setOf_eq]
-    -- Y S < ε*m/2 ≤ m*p/2 (since ε ≤ p, m ≥ 0)
     have hYS_lt : Y S < (m : ℝ) * p / 2 := by
-      calc Y S < ε * (m : ℝ) / 2 := hS
-        _ ≤ p * (m : ℝ) / 2 := by apply div_le_div_of_nonneg_right _ (by norm_num)
-                                   apply mul_le_mul_of_nonneg_right hbad hm_real.le
+      calc Y S < ε * ↑m / 2 := hS
+        _ ≤ p * ↑m / 2 := by linarith [mul_le_mul_of_nonneg_right hbad hm_real.le]
         _ = (m : ℝ) * p / 2 := by ring
-    -- Y S < mp, so |Y S - mp| = mp - Y S > mp/2
-    have hYS_lt_mp : Y S < (m : ℝ) * p := by linarith
-    rw [abs_sub_comm, abs_of_pos (by linarith)]
-    linarith
-  -- 11. Combine: P(¬hasManyErrors) ≤ P(Chebyshev event) ≤ 1/2
+    rw [abs_of_neg (by linarith : Y S - (m : ℝ) * p < 0)]; linarith
+  -- 11. P(¬hasManyErrors) ≤ 1/2
   have hPcomp : (sampleMeasure D m) {S | ¬ hasManyErrors ε m h c S} ≤ ENNReal.ofReal (1 / 2) :=
     (measure_mono hSubset).trans (hCheby.trans hBound)
-  -- 12. Conclude: P(hasManyErrors) ≥ 1/2 (by complement)
-  have hms : MeasurableSet {S : Fin m → X | ¬ hasManyErrors ε m h c S} :=
-    (hY_meas.measurableSet_le measurable_const).compl.compl.congr
-      (by ext S; simp [hasManyErrors, hY_eq, ← hMany_iff]; tauto)
-  -- Actually easier: use MeasurableSet of the "good" set
+  -- 12. MeasurableSet of the good event
   have hms_good : MeasurableSet {S : Fin m → X | hasManyErrors ε m h c S} := by
-    simp_rw [Set.setOf_iff_iff.mpr (fun S => hMany_iff S)]
-    exact measurable_const.measurableSet_le hY_meas
-  rw [← Set.compl_compl {S | hasManyErrors ε m h c S}]
-  rw [prob_compl_eq_one_sub hms_good.compl]
-  have h1sub : 1 - ENNReal.ofReal (1 / 2) = ENNReal.ofReal (1 / 2) := by
-    rw [← ENNReal.ofReal_one, ← ENNReal.ofReal_sub (by norm_num : (1:ℝ)/2 ≤ 1)]
-    norm_num
-  have hcompl_eq : {S : Fin m → X | hasManyErrors ε m h c S}ᶜ =
-                   {S | ¬ hasManyErrors ε m h c S} := Set.compl_setOf _ _
-  rw [hcompl_eq]
+    have : {S : Fin m → X | hasManyErrors ε m h c S} = {S | ε * ↑m / 2 ≤ Y S} :=
+      Set.ext (fun S => hMany_iff S)
+    rw [this]; exact measurableSet_le measurable_const hY_meas
+  -- 13. Conclude: P(hasManyErrors) = 1 - P(¬hasManyErrors) ≥ 1 - 1/2 = 1/2
+  have hbad_eq : {S : Fin m → X | ¬ hasManyErrors ε m h c S} =
+                 {S | hasManyErrors ε m h c S}ᶜ := by ext; simp
+  have hcompl_good : (sampleMeasure D m) {S | hasManyErrors ε m h c S} =
+                     1 - (sampleMeasure D m) {S | ¬ hasManyErrors ε m h c S} := by
+    rw [hbad_eq, prob_compl_eq_one_sub hms_good,
+        ENNReal.sub_sub_cancel ENNReal.one_ne_top prob_le_one]
+  have h1sub : (1 : ENNReal) - ENNReal.ofReal (1 / 2) = ENNReal.ofReal (1 / 2) := by
+    rw [← ENNReal.ofReal_one, ← ENNReal.ofReal_sub 1 (by norm_num : (0:ℝ) ≤ 1/2)]; norm_num
+  rw [hcompl_good]
   calc ENNReal.ofReal (1 / 2) = 1 - ENNReal.ofReal (1 / 2) := h1sub.symm
     _ ≤ 1 - (sampleMeasure D m) {S | ¬ hasManyErrors ε m h c S} :=
-        ENNReal.tsub_le_tsub_left hPcomp 1
-    _ = (sampleMeasure D m) {S | hasManyErrors ε m h c S} := by
-        rw [← hcompl_eq, prob_compl_eq_one_sub hms_good]
-        simp [ENNReal.sub_sub_cancel]
+        tsub_le_tsub_left hPcomp 1
 
 end BernoulliErrorBound
 
@@ -321,6 +313,78 @@ theorem ghost_sample_bound
   -- Key facts about B: B ⊆ A, and for S₁ where A holds, P₂[B(S₁,·)] ≥ 1/2.
   -- By Fubini, P[B] = ∫ S₁, P₂[B(S₁,·)] dP₁ ≥ (1/2) · P₁[A].
   -- Hence P[A] ≤ 2 · P[B].
-  sorry
+  -- The map splitting a 2m-sample into two halves
+  let f : (Fin (2 * m) → X) → (Fin m → X) × (Fin m → X) := fun S => (firstHalf S, secondHalf S)
+  have hf_meas : Measurable f := by
+    apply Measurable.prod
+    · apply measurable_pi_lambda; intro i; exact measurable_pi_apply _
+    · apply measurable_pi_lambda; intro i; exact measurable_pi_apply _
+  -- Events in the product space
+  let A_prod : Set ((Fin m → X) × (Fin m → X)) :=
+    {p | ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c p.1}
+  let B_prod : Set ((Fin m → X) × (Fin m → X)) :=
+    {p | ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c p.1 ∧
+         hasManyErrors ε m h c p.2}
+  -- Measurability of A_prod and B_prod
+  -- (Requires measurability of C-existentials; see errors.md for discussion)
+  have hA_meas : MeasurableSet A_prod := by sorry
+  have hB_meas : MeasurableSet B_prod := by sorry
+  -- Preimage equalities
+  have hf_preimage_A : f ⁻¹' A_prod = {S | EventA C c D ε m S} := by
+    ext S
+    simp only [Set.mem_preimage, A_prod, Set.mem_setOf_eq, f, Prod.fst,
+               EventA, isBadHypothesis, isConsistentWith]
+  have hf_preimage_B : f ⁻¹' B_prod = {S | EventB C c D ε m S} := by
+    ext S
+    simp only [Set.mem_preimage, B_prod, Set.mem_setOf_eq, f, Prod.fst, Prod.snd,
+               EventB, isBadHypothesis, isConsistentWith, hasManyErrors]
+  -- Pull back to product measure using sampleMeasure_eq_prod
+  have hProd_eq := sampleMeasure_eq_prod D m
+  have hPA : (sampleMeasure D (2 * m)) {S | EventA C c D ε m S} = (P₁.prod P₁) A_prod := by
+    rw [← hf_preimage_A, ← Measure.map_apply hf_meas hA_meas, hProd_eq]
+  have hPB : (sampleMeasure D (2 * m)) {S | EventB C c D ε m S} = (P₁.prod P₁) B_prod := by
+    rw [← hf_preimage_B, ← Measure.map_apply hf_meas hB_meas, hProd_eq]
+  rw [hPA, hPB]
+  -- Apply Fubini (Measure.prod_apply) to both sides
+  rw [Measure.prod_apply hA_meas, Measure.prod_apply hB_meas]
+  -- Measurability of slice function (follows from hB_meas)
+  have hB_slice_meas : Measurable (fun S₁ : Fin m → X => P₁ (Prod.mk S₁ ⁻¹' B_prod)) :=
+    measurable_measure_prodMk_left hB_meas
+  -- Factor constant 2 into integral
+  rw [show (2 : ENNReal) * ∫⁻ S₁, P₁ (Prod.mk S₁ ⁻¹' B_prod) ∂P₁ =
+          ∫⁻ S₁, 2 * P₁ (Prod.mk S₁ ⁻¹' B_prod) ∂P₁ from
+    (lintegral_const_mul 2 hB_slice_meas).symm]
+  -- Pointwise comparison
+  apply lintegral_mono
+  intro S₁
+  -- Beta-reduce the lambda-wrapped goal
+  show P₁ (Prod.mk S₁ ⁻¹' A_prod) ≤ 2 * P₁ (Prod.mk S₁ ⁻¹' B_prod)
+  by_cases hS₁ : ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c S₁
+  · -- S₁ is in A_half: A_prod section is all of univ
+    have hAsec : Prod.mk S₁ ⁻¹' A_prod = Set.univ := by
+      ext S₂; simp only [Set.mem_preimage, A_prod, Set.mem_setOf_eq, Set.mem_univ,
+                          iff_true, Prod.fst]; exact hS₁
+    rw [hAsec, measure_univ]
+    -- P₁[B_prod section S₁] ≥ ENNReal.ofReal (1/2)
+    have hBsec_lb : ENNReal.ofReal (1/2) ≤ P₁ (Prod.mk S₁ ⁻¹' B_prod) := by
+      obtain ⟨h, hh, hbad, hcons⟩ := hS₁
+      apply (bernoulli_error_lower_bound D h c m ε hε hm hm_pos hbad).trans
+      apply measure_mono
+      intro S₂ hS₂
+      simp only [Set.mem_preimage, B_prod, Set.mem_setOf_eq, Prod.fst, Prod.snd]
+      exact ⟨h, hh, hbad, hcons, hS₂⟩
+    -- 1 ≤ 2 * P₁(B_prod section)
+    have h12 : 2 * ENNReal.ofReal (1 / 2) = 1 := by
+      rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ) < 2), ENNReal.ofReal_one,
+          ENNReal.ofReal_ofNat]
+      exact ENNReal.mul_div_cancel two_ne_zero ENNReal.ofNat_ne_top
+    calc (1 : ENNReal) = 2 * ENNReal.ofReal (1/2) := h12.symm
+      _ ≤ 2 * P₁ (Prod.mk S₁ ⁻¹' B_prod) := mul_le_mul_right hBsec_lb 2
+  · -- S₁ is not in A_half: A_prod section is empty
+    have hAsec : Prod.mk S₁ ⁻¹' A_prod = ∅ := by
+      ext S₂; simp only [Set.mem_preimage, A_prod, Set.mem_setOf_eq, Set.mem_empty_iff_false,
+                          Prod.fst, iff_false]
+      intro ⟨h, hh, hbad, hcons⟩; exact hS₁ ⟨h, hh, hbad, hcons⟩
+    rw [hAsec, measure_empty]; exact zero_le _
 
 end GhostSampleBound
