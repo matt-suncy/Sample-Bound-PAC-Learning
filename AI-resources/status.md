@@ -50,24 +50,20 @@ Fully proved, no sorries.
 
 ## In Progress / Currently Working On
 
-None actively in progress right now. Next session should begin with `sampleMeasure_eq_prod`.
+None actively in progress right now.
 
 ---
 
-## Still To Do (4 sorries)
+## Still To Do (3 sorries)
 
 Priority order (easiest → hardest):
 
-### 1. `GhostSample.lean:133` — `sampleMeasure_eq_prod`
-```
-(sampleMeasure D (2 * m)).map (fun S => (firstHalf S, secondHalf S)) =
-(sampleMeasure D m).prod (sampleMeasure D m)
-```
-**What's needed:** Show that `Measure.pi (fun _ : Fin (2m) => D)` mapped through the
-`Fin(2m) ≅ Fin(m) ⊕ Fin(m)` bijection equals the product of two `Measure.pi`s.
-Likely approach: `MeasureTheory.Measure.pi_map_piEquiv` or `Measure.pi_prod`.
+### ~~1. `GhostSample.lean:133` — `sampleMeasure_eq_prod`~~ ✓ PROVED (2026-04-08)
+Used `finSumFinEquiv.trans (Fin.castOrderIso h2m)` to build `f : Fin m ⊕ Fin m ≃ Fin (2*m)`,
+then composed `measurePreserving_piCongrLeft.symm` and `measurePreserving_sumPiEquivProdPi`.
+Key: `Equiv.piCongrLeft_symm_apply (fun _ => X) f S j` to simplify the symm coercion.
 
-### 2. `GhostSample.lean:104` — `bernoulli_error_lower_bound`
+### 1. `GhostSample.lean:104` — `bernoulli_error_lower_bound`
 ```
 ENNReal.ofReal (1/2) ≤ (sampleMeasure D m) {S₂ | hasManyErrors ε m h c S₂}
 ```

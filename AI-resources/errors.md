@@ -43,14 +43,13 @@ Update this file as new errors are found or resolved.
 
 ## Open / Unresolved Errors and Known Risks
 
-### [OPEN] `sampleMeasure_eq_prod` — correct Mathlib lemma name unknown
-**File:** `GhostSample.lean:133`
-**Issue:** Need to show `Measure.pi (fun _ : Fin (2m) => D)` pushed through the `firstHalf`/`secondHalf` map equals `(Measure.pi ...).prod (Measure.pi ...)`. The correct Mathlib4 lemma connecting `Measure.pi` on a sum type / split index type to `Measure.prod` of two `Measure.pi`s is not yet identified.
-**Candidates to search:**
-- `MeasureTheory.Measure.pi_map_piEquiv`
-- `MeasureTheory.Measure.pi_prod`
-- `MeasureTheory.Measure.Measure.piEquiv`
-**Risk:** The `combineHalves`/`firstHalf`/`secondHalf` splitting may need a `MeasurableEquiv` between `Fin (2*m)` and `Fin m ⊕ Fin m` (or `Fin m × Fin 2`) to use Mathlib's product-of-pi theorems.
+### [RESOLVED] `sampleMeasure_eq_prod` — proved 2026-04-08
+**File:** `GhostSample.lean`
+**Resolution:** Composed two measure-preserving maps:
+1. `(MeasurableEquiv.piCongrLeft (fun _ => X) f).symm` using `f = finSumFinEquiv.trans (Fin.castOrderIso h2m).toEquiv : Fin m ⊕ Fin m ≃ Fin (2*m)`
+2. `MeasurableEquiv.sumPiEquivProdPi`
+Key lemma: `Equiv.piCongrLeft_symm_apply (fun _ => X) f S j` (note: `P` and `e` are both explicit in the variable section — must pass both).
+Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/secondHalf]` + `congr 1` (which closes by definitional equality of `Fin` values).
 
 ### [OPEN] `bernoulli_error_lower_bound` — Chebyshev in Mathlib4
 **File:** `GhostSample.lean:104`
