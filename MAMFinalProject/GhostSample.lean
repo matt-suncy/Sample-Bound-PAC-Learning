@@ -343,7 +343,10 @@ theorem ghost_sample_bound
           isBadHypothesis D c ε hh ∧ isConsistentWith hh c p.1} := by
       show {p : (Fin m → X) × (Fin m → X) |
           ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c p.1} = _
-      ext p; simp only [Set.mem_biUnion, Set.mem_setOf_eq]
+      ext p; simp only [Set.mem_iUnion, Set.mem_setOf_eq]
+      constructor
+      · rintro ⟨h, hC, hbad, hcons⟩; exact ⟨h, hC, hbad, hcons⟩
+      · rintro ⟨h, hC, hbad, hcons⟩; exact ⟨h, hC, hbad, hcons⟩
     rw [hA_eq]
     apply MeasurableSet.biUnion hC
     intro hh _
@@ -368,8 +371,8 @@ theorem ghost_sample_bound
       ext p
       simp only [Set.mem_iUnion, Set.mem_setOf_eq]
       constructor
-      · rintro ⟨hh, hhC, hbad, hcons, hmany⟩; exact ⟨hh, hbad, hhC, hcons, hmany⟩
-      · rintro ⟨hh, hbad, hhC, hcons, hmany⟩; exact ⟨hh, hhC, hbad, hcons, hmany⟩
+      · rintro ⟨hh, hhC, hbad, hcons, hmany⟩; exact ⟨hh, hhC, hbad, hcons, hmany⟩
+      · rintro ⟨hh, hhC, hbad, hcons, hmany⟩; exact ⟨hh, hhC, hbad, hcons, hmany⟩
     rw [hB_eq]
     apply MeasurableSet.biUnion hC
     intro hh _

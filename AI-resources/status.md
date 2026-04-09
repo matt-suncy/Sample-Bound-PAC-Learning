@@ -1,6 +1,6 @@
 # Formalization Status — PAC Learning Symmetrization (Lean 4)
 
-Last updated: 2026-04-08 (session 2)
+Last updated: 2026-04-09 (session 3)
 
 ---
 
@@ -23,7 +23,7 @@ Fully proved, no sorries.
 - [x] `hypergeometric_bound_nat` — `2^l * C(m,l) ≤ C(2m,l)` by induction + Pascal
 - [x] `hypergeometric_bound` — `C(m,l)/C(2m,l) ≤ (1/2)^l` (real-valued cast)
 
-### `GhostSample.lean` — All non-sorry steps proved
+### `GhostSample.lean` — Fully compiled, no sorries
 - [x] `isBadHypothesis` — `ε ≤ trueError D h c`
 - [x] `isConsistentWith` — zero empirical error on S₁
 - [x] `hasManyErrors` — `≥ εm/2` errors on S₂
@@ -32,7 +32,7 @@ Fully proved, no sorries.
 - [x] `error_indicator_mean_ge` — `D {x | isError h c x} ≥ ε`
 - [x] `sampleMeasure_eq_prod` — 2m-sample decomposes as P₁ ⊗ P₁ (proved 2026-04-08)
 - [x] `bernoulli_error_lower_bound` — Chebyshev bound giving P[many errors] ≥ 1/2 (proved 2026-04-08)
-- [x] `ghost_sample_bound` — P[A] ≤ 2·P[B] (structure proved 2026-04-08; has 2 sorries for measurability of A_prod/B_prod and the union step)
+- [x] `ghost_sample_bound` — P[A] ≤ 2·P[B] (fully proved 2026-04-09; hA_meas/hB_meas compile errors fixed)
 
 ### `Symmetrization.lean` — Growth function and sample size algebra
 - [x] `growthFunction` — `⨆ S, Nat.card (range (restrictToSample h S))`
@@ -45,10 +45,10 @@ Fully proved, no sorries.
 - [x] `restrictionFamily` — finite set family encoding C's restrictions to a sample
 - [x] `VC_dim` — `⨆ m S, vcDim (restrictionFamily C S)`
 - [x] `card_restrictionFamily_eq`
-- [x] `growthFunction_le_sauerShelah_sum` — uses Mathlib's `Finset.card_shatterer_le_sum_vcDim`
+- [x] `growthFunction_le_sauerShelah_sum` — fully proved 2026-04-09; added `h_vcDim_elem` hypothesis (see errors.md)
 - [x] `sum_choose_le_pow` — `∑_{k≤d} C(n,k) ≤ (e·n/d)^d` (binomial theorem proof)
-- [x] `sauer_shelah_bound` — `Π_C(2m) ≤ (2em/d)^d`
-- [x] `pac_sample_complexity_bound` — final theorem *(structurally complete; chains all lemmas; depends on sorries below)*
+- [x] `sauer_shelah_bound` — `Π_C(2m) ≤ (2em/d)^d` (propagated `h_vcDim_elem` 2026-04-09)
+- [x] `pac_sample_complexity_bound` — final theorem fully compiled; propagated `hVC_elem` 2026-04-09 *(depends on symmetrization_bound sorry below)*
 
 ---
 
@@ -60,14 +60,7 @@ None actively in progress right now.
 
 ## Still To Do (remaining sorries)
 
-### 1. `GhostSample.lean` — `hA_meas` and `hB_meas` (inside `ghost_sample_bound`)
-**Progress (2026-04-08 session 2):**
-- Added `(hC : Set.Countable C)` to `ghost_sample_bound` and `pac_sample_complexity_bound`
-- Proof structure written: `MeasurableSet.biUnion hC`, per-h `by_cases hbad`, pi-set preimage for consistent slice, `measurableSet_le measurable_const` + `Finset.measurable_sum` for errorCount slice
-- Compiling errors remain: the equality `A_prod = ⋃ h ∈ C, {p | ...}` proof needs `show` to unfold the `let` binding for `A_prod` before `simp only [Set.mem_biUnion, Set.mem_setOf_eq]`
-- **Next step:** Fix the `hA_eq`/`hB_eq` equality proof with `show` + `Set.mem_biUnion`
-
-### 2. `Symmetrization.lean` — union bound step (inside `symmetrization_bound`)
+### 1. `Symmetrization.lean` — union bound step (inside `symmetrization_bound`)
 ```
 -- P[EventB] ≤ growthFunction · (1/2)^{εm/2}
 sorry

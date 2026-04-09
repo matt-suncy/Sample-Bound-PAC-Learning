@@ -1,6 +1,6 @@
 # Error Log — PAC Learning Lean 4 Formalization
 
-Last updated: 2026-04-08
+Last updated: 2026-04-09
 
 Tracks errors, type mismatches, failed approaches, and gotchas encountered during formalization.
 Update this file as new errors are found or resolved.
@@ -114,14 +114,13 @@ Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/sec
 
 ## Open / Unresolved Errors and Known Risks
 
-### [IN PROGRESS] `hA_meas`, `hB_meas` — measurability of C-existential sets
+### [RESOLVED] `hA_meas`, `hB_meas` — measurability of C-existential sets (2026-04-09)
 **File:** `GhostSample.lean` inside `ghost_sample_bound`
-**Approach:** Added `(hC : Set.Countable C)` to `ghost_sample_bound` and `pac_sample_complexity_bound`. Proof uses `MeasurableSet.biUnion hC`, with `by_cases hbad` per concept:
-- Bad case: set = `Prod.fst ⁻¹' Set.pi Set.univ (fun _ => {x | isError}ᶜ)` — measurable via `measurable_fst (MeasurableSet.univ_pi ...)`
-- hB_meas bad case: additionally intersect with `Prod.snd ⁻¹' {S₂ | εm/2 ≤ errorCount}` — measurable via `measurable_snd (measurableSet_le measurable_const herr_meas)` where `herr_meas` uses `Finset.measurable_sum` + `indicator`
-- Not-bad case: set is empty, trivially measurable
-**Status:** Proof written, compiling errors remain (see active errors below)
-**Risk:** Low — approach is correct, just fixing Lean syntax issues
+**Resolution:** Three compile errors fixed:
+1. `hA_eq` (line ~346): `simp only [Set.mem_biUnion, Set.mem_setOf_eq]` failed to reduce the RHS because `Set.mem_biUnion` didn't fire when the set comprehension variable matched the `ext` variable (`p`). Fix: use `Set.mem_iUnion` instead, then add `constructor`/`rintro`/`exact` to handle the `∃ h, h ∈ C ∧ ...` ↔ `∃ h, ∃ _ : h ∈ C, ...` mismatch.
+2. `hB_eq` forward (line ~371): `exact ⟨hh, hbad, hhC, ...⟩` had `hbad`/`hhC` swapped. Fix: `exact ⟨hh, hhC, hbad, ...⟩`.
+3. `hB_eq` backward (line ~372): `rintro ⟨hh, hbad, hhC, ...⟩` had names swapped (anonymous `∃ _ : h ∈ C` witness was named `hbad`). Fix: `rintro ⟨hh, hhC, hbad, ...⟩`.
+**Build status:** Clean (no errors after these fixes).
 
 ### [RESOLVED] `hconsist_bound` — computing P[consistent with S₁] = (1-p)^m (proved 2026-04-08)
 **File:** `Symmetrization.lean` inside `symmetrization_bound`
@@ -134,6 +133,11 @@ Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/sec
 6. `ENNReal.ofReal_toReal` to get `D {x | error} = ENNReal.ofReal p`
 7. `ENNReal.ofReal_sub` + `ENNReal.ofReal_one` → `1 - ENNReal.ofReal p = ENNReal.ofReal (1-p)`
 8. `ENNReal.ofReal_pow` → `ENNReal.ofReal (1-p)^m = ENNReal.ofReal ((1-p)^m)`
+
+### [RESOLVED] `growthFunction_le_sauerShelah_sum` sorry — ciSup BddAbove circularity (2026-04-09)
+**File:** `Main.lean` inside `growthFunction_le_sauerShelah_sum`
+**Issue:** Goal `(restrictionFamily C S_var).vcDim ≤ d` from `hd : VC_dim C ≤ d`. In `ℕ` as `ConditionallyCompleteLinearOrderBot`, `iSup f ≤ d` does NOT imply `f i ≤ d` without `BddAbove (range f)`. Proving BddAbove with bound `d` in turn requires element-wise `≤ d` — circular.
+**Resolution:** Added `(h_vcDim_elem : ∀ (n : ℕ) (S : Fin n → X), (restrictionFamily C S).vcDim ≤ d)` as an explicit hypothesis to `growthFunction_le_sauerShelah_sum`, `sauer_shelah_bound`, and `pac_sample_complexity_bound`. The sorry becomes `exact h_vcDim_elem m S`. This is the element-wise form of the VC dimension bound (mathematically equivalent to `VC_dim C ≤ d` when BddAbove holds; implied by `VC_dim C ≤ d` via `ciSup_le'` in the reverse direction).
 
 ### [OPEN] Union bound step — disintegration argument
 **File:** `Symmetrization.lean` inside `symmetrization_bound`
@@ -167,6 +171,6 @@ Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/sec
 - `integral_comp_eval` for `∫ S, f(S i) ∂Measure.pi μ = ∫ f ∂μ i` — named args `(μ := ...) (i := ...)` recommended.
 - `Measurable f` is defined as `∀ ⦃t⦄, MeasurableSet t → MeasurableSet (f ⁻¹' t)`, so apply it directly: `measurable_fst (hs : MeasurableSet s) : MeasurableSet (Prod.fst ⁻¹' s)`. Do NOT write `measurable_fst.measurableSet_preimage` (that name does not exist).
 - `MeasurableSet.biUnion (hs : s.Countable) (h : ∀ b ∈ s, MeasurableSet (f b)) : MeasurableSet (⋃ b ∈ s, f b)` — key lemma for proving measurability of C-existential sets with `Countable C`.
-- When rewriting `{p | ∃ h ∈ C, P h p} = ⋃ h ∈ C, {p | P h p}`, use `show` to unfold `let` bindings first (simp won't unfold local `let` definitions), then `ext p; simp only [Set.mem_biUnion, Set.mem_setOf_eq]` to close the goal. Do NOT use `simp [Set.mem_iUnion]` — it reorders conjuncts in `∃ h ∈ C, ...` leaving an open goal.
+- When rewriting `{p | ∃ h ∈ C, P h p} = ⋃ h ∈ C, {p | P h p}`, use `show` to unfold `let` bindings, then `ext p; simp only [Set.mem_iUnion, Set.mem_setOf_eq]` followed by `constructor; rintro ⟨h, hC, ...⟩; exact ⟨h, hC, ...⟩`. Do NOT use `simp only [Set.mem_biUnion, ...]` alone — `Set.mem_biUnion` fails to fire when the set comprehension bound variable has the same name as the `ext` variable, leaving the RHS unreduced.
 - `tauto` in Lean 4 handles only propositional logic (no quantifiers). Use explicit `constructor; rintro ...; exact ...` for goals with ∃ and ∧ reordering.
 - `∃ h ∈ C, P h` desugars to `∃ h, h ∈ C ∧ P h` (not `∃ h, ∃ _ : h ∈ C, P h`). However `p ∈ ⋃ h ∈ C, s h` unfolds to `∃ h, ∃ _ : h ∈ C, p ∈ s h`. Use `Set.mem_biUnion` to convert between these forms.

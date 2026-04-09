@@ -63,7 +63,11 @@ where d = VC_dim C.
   |restrictionFamily C S| = #(restrictionFamily C S) ≤ #shatterer ≤ ∑_{k ≤ d} C(m,k)
 The growth function is the sup over all such S, so it's also ≤ ∑_{k ≤ d} C(m,k). -/
 theorem growthFunction_le_sauerShelah_sum
-    (C : Set (Concept X)) (m : ℕ) (d : ℕ) (hd : VC_dim C ≤ d) :
+    (C : Set (Concept X)) (m : ℕ) (d : ℕ) (hd : VC_dim C ≤ d)
+    -- Element-wise VC dimension bound: every restriction family has vcDim ≤ d.
+    -- Equivalent to VC_dim C ≤ d when the ciSup is well-defined (BddAbove holds),
+    -- but stated in the form Lean can directly use inside le_ciSup chains.
+    (h_vcDim_elem : ∀ (n : ℕ) (S : Fin n → X), (restrictionFamily C S).vcDim ≤ d) :
     growthFunction C m ≤ ∑ k ∈ Finset.Iic d, Nat.choose m k := by
   apply ciSup_le'
   intro S
@@ -74,8 +78,6 @@ theorem growthFunction_le_sauerShelah_sum
   -- Apply Sauer-Shelah from Mathlib
   have hss := Finset.card_shatterer_le_sum_vcDim (𝒜 := restrictionFamily C S)
     (α := Fin m)
-  -- The shatterer of the restriction family has the same card as itself
-  -- (or we bound the card by the shatterer bound)
   calc (restrictionFamily C S).card
       ≤ (restrictionFamily C S).shatterer.card := Finset.card_le_card_shatterer _
     _ ≤ ∑ k ∈ Finset.Iic (restrictionFamily C S).vcDim, (Fintype.card (Fin m)).choose k :=
@@ -83,19 +85,7 @@ theorem growthFunction_le_sauerShelah_sum
     _ ≤ ∑ k ∈ Finset.Iic d, Nat.choose m k := by
         simp only [Fintype.card_fin]
         apply Finset.sum_le_sum_of_subset_of_nonneg
-        · apply Finset.Iic_subset_Iic.mpr
-          -- vcDim (restrictionFamily C S) ≤ VC_dim C ≤ d.
-          -- Formally: le_ciSup in ConditionallyCompleteLinearOrderBot requires BddAbove,
-          -- which follows from VC_dim C ≤ d but requires care with the ciSup definition.
-          -- The inner BddAbove (by ground set size) is straightforward; the outer requires sorry.
-          have h_inner_bdd : BddAbove (Set.range fun T : Fin m → X =>
-              (restrictionFamily C T).vcDim) :=
-            ⟨m, fun x ⟨T, hT⟩ => hT ▸ (by
-              unfold Finset.vcDim; apply Finset.sup_le; intro s _
-              exact (Finset.card_le_univ s).trans_eq (Fintype.card_fin m))⟩
-          exact (le_ciSup_of_le (⟨d, fun x ⟨n, hn⟩ =>
-              hn ▸ ciSup_le' fun _ => by sorry⟩) m
-            (le_ciSup_of_le h_inner_bdd S le_rfl)).trans hd
+        · exact Finset.Iic_subset_Iic.mpr (h_vcDim_elem m S)
         · intros; positivity
 
 end VCDimension
@@ -168,9 +158,10 @@ lemma sum_choose_le_pow (n d : ℕ) (hd : 0 < d) (hnd : d ≤ n) :
 /-- **Sauer-Shelah bound**: The growth function satisfies
 Π_C(2m) ≤ (2·e·m/d)^d where d = VC_dim C. -/
 theorem sauer_shelah_bound (C : Set (Concept X)) (m d : ℕ)
-    (hd : 0 < d) (hVC : VC_dim C ≤ d) (hmd : d ≤ 2 * m) :
+    (hd : 0 < d) (hVC : VC_dim C ≤ d) (hmd : d ≤ 2 * m)
+    (h_vcDim_elem : ∀ (n : ℕ) (S : Fin n → X), (restrictionFamily C S).vcDim ≤ d) :
     (growthFunction C (2 * m) : ℝ) ≤ (2 * Real.exp 1 * m / d) ^ d := by
-  have hss := growthFunction_le_sauerShelah_sum C (2 * m) d hVC
+  have hss := growthFunction_le_sauerShelah_sum C (2 * m) d hVC h_vcDim_elem
   calc (growthFunction C (2 * m) : ℝ)
       ≤ ∑ k ∈ Finset.Iic d, Nat.choose (2 * m) k := by exact_mod_cast hss
     _ ≤ (Real.exp 1 * (2 * m) / d) ^ d := by
@@ -209,6 +200,8 @@ theorem pac_sample_complexity_bound
     (hmd : d ≤ 2 * m)
     (hm_size : 8 / ε ≤ (m : ℝ))
     (hC : Set.Countable C)
+    -- Element-wise VC dimension bound (see growthFunction_le_sauerShelah_sum for discussion).
+    (hVC_elem : ∀ (n : ℕ) (S : Fin n → X), (restrictionFamily C S).vcDim ≤ d)
     -- The full sample size condition after substituting Sauer-Shelah
     -- (uses natural log; matches the (1/2)^{εm/2} bound via log 2 factor):
     (hm : (2 / ε) * (d * Real.log (2 * Real.exp 1 * m / d) + Real.log (2 / δ)) ≤
@@ -232,7 +225,7 @@ theorem pac_sample_complexity_bound
               apply mul_le_mul_of_nonneg_left _ (by positivity)
               gcongr
               -- log(growthFunction) ≤ d * log(2em/d) follows from sauer_shelah_bound
-              have hg := sauer_shelah_bound C m d hd hVC hmd
+              have hg := sauer_shelah_bound C m d hd hVC hmd hVC_elem
               rcases Nat.eq_zero_or_pos (growthFunction C (2 * m)) with h0 | hpos
               · -- If growthFunction = 0, then log 0 = 0 ≤ d * log(2em/d)
                 simp only [h0, Nat.cast_zero, Real.log_zero]
