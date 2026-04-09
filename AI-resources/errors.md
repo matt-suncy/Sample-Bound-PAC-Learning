@@ -114,11 +114,14 @@ Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/sec
 
 ## Open / Unresolved Errors and Known Risks
 
-### [OPEN] `hA_meas`, `hB_meas` — measurability of C-existential sets
+### [IN PROGRESS] `hA_meas`, `hB_meas` — measurability of C-existential sets
 **File:** `GhostSample.lean` inside `ghost_sample_bound`
-**Issue:** The sets `A_prod = {(S₁,S₂) | ∃ h ∈ C, bad ∧ consistent with S₁}` and similarly `B_prod` need `MeasurableSet`. Since C may be uncountable, the existential `∃ h ∈ C` is not automatically a countable union.
-**Status:** sorry
-**Risk (MEDIUM):** Either add `Countable C` hypothesis, or use a measurable σ-algebra on concept classes.
+**Approach:** Added `(hC : Set.Countable C)` to `ghost_sample_bound` and `pac_sample_complexity_bound`. Proof uses `MeasurableSet.biUnion hC`, with `by_cases hbad` per concept:
+- Bad case: set = `Prod.fst ⁻¹' Set.pi Set.univ (fun _ => {x | isError}ᶜ)` — measurable via `measurable_fst (MeasurableSet.univ_pi ...)`
+- hB_meas bad case: additionally intersect with `Prod.snd ⁻¹' {S₂ | εm/2 ≤ errorCount}` — measurable via `measurable_snd (measurableSet_le measurable_const herr_meas)` where `herr_meas` uses `Finset.measurable_sum` + `indicator`
+- Not-bad case: set is empty, trivially measurable
+**Status:** Proof written, compiling errors remain (see active errors below)
+**Risk:** Low — approach is correct, just fixing Lean syntax issues
 
 ### [RESOLVED] `hconsist_bound` — computing P[consistent with S₁] = (1-p)^m (proved 2026-04-08)
 **File:** `Symmetrization.lean` inside `symmetrization_bound`
@@ -162,3 +165,8 @@ Function equality proved via `Prod.ext` + `funext i` + `simp only [firstHalf/sec
 - `Measure.pi_pi [∀ i, SigmaFinite (μ i)] (s : ∀ i, Set (α i)) : Measure.pi μ (Set.pi Set.univ s) = ∏ i, μ i (s i)` — IsProbabilityMeasure gives SigmaFinite automatically.
 - `variance_sum_pi` requires explicit named args `(ι := ...) (μ := ...) (X := ...)` to avoid typeclass inference failure.
 - `integral_comp_eval` for `∫ S, f(S i) ∂Measure.pi μ = ∫ f ∂μ i` — named args `(μ := ...) (i := ...)` recommended.
+- `Measurable f` is defined as `∀ ⦃t⦄, MeasurableSet t → MeasurableSet (f ⁻¹' t)`, so apply it directly: `measurable_fst (hs : MeasurableSet s) : MeasurableSet (Prod.fst ⁻¹' s)`. Do NOT write `measurable_fst.measurableSet_preimage` (that name does not exist).
+- `MeasurableSet.biUnion (hs : s.Countable) (h : ∀ b ∈ s, MeasurableSet (f b)) : MeasurableSet (⋃ b ∈ s, f b)` — key lemma for proving measurability of C-existential sets with `Countable C`.
+- When rewriting `{p | ∃ h ∈ C, P h p} = ⋃ h ∈ C, {p | P h p}`, use `show` to unfold `let` bindings first (simp won't unfold local `let` definitions), then `ext p; simp only [Set.mem_biUnion, Set.mem_setOf_eq]` to close the goal. Do NOT use `simp [Set.mem_iUnion]` — it reorders conjuncts in `∃ h ∈ C, ...` leaving an open goal.
+- `tauto` in Lean 4 handles only propositional logic (no quantifiers). Use explicit `constructor; rintro ...; exact ...` for goals with ∃ and ∧ reordering.
+- `∃ h ∈ C, P h` desugars to `∃ h, h ∈ C ∧ P h` (not `∃ h, ∃ _ : h ∈ C, P h`). However `p ∈ ⋃ h ∈ C, s h` unfolds to `∃ h, ∃ _ : h ∈ C, p ∈ s h`. Use `Set.mem_biUnion` to convert between these forms.

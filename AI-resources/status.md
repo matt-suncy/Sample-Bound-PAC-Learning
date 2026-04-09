@@ -1,6 +1,6 @@
 # Formalization Status — PAC Learning Symmetrization (Lean 4)
 
-Last updated: 2026-04-08
+Last updated: 2026-04-08 (session 2)
 
 ---
 
@@ -61,14 +61,11 @@ None actively in progress right now.
 ## Still To Do (remaining sorries)
 
 ### 1. `GhostSample.lean` — `hA_meas` and `hB_meas` (inside `ghost_sample_bound`)
-```
-have hA_meas : MeasurableSet A_prod := by sorry
-have hB_meas : MeasurableSet B_prod := by sorry
-```
-**What's needed:** Measurability of the sets `{(S₁,S₂) | ∃ h ∈ C, bad ∧ consistent with S₁}` and the corresponding B_prod set. Requires either:
-- `Countable C` hypothesis, or
-- A measurable σ-algebra on concept classes, or
-- A different proof strategy that avoids measurability of C-existentials.
+**Progress (2026-04-08 session 2):**
+- Added `(hC : Set.Countable C)` to `ghost_sample_bound` and `pac_sample_complexity_bound`
+- Proof structure written: `MeasurableSet.biUnion hC`, per-h `by_cases hbad`, pi-set preimage for consistent slice, `measurableSet_le measurable_const` + `Finset.measurable_sum` for errorCount slice
+- Compiling errors remain: the equality `A_prod = ⋃ h ∈ C, {p | ...}` proof needs `show` to unfold the `let` binding for `A_prod` before `simp only [Set.mem_biUnion, Set.mem_setOf_eq]`
+- **Next step:** Fix the `hA_eq`/`hB_eq` equality proof with `show` + `Set.mem_biUnion`
 
 ### 2. `Symmetrization.lean` — union bound step (inside `symmetrization_bound`)
 ```

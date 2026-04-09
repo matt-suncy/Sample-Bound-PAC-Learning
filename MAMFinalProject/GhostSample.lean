@@ -303,7 +303,8 @@ Pr[EventA] ≤ 2 · Pr[EventB]. -/
 theorem ghost_sample_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
     (ε : ℝ) (m : ℕ)
-    (hε : ε > 0) (hm : 8 / ε ≤ (m : ℝ)) (hm_pos : 0 < m) :
+    (hε : ε > 0) (hm : 8 / ε ≤ (m : ℝ)) (hm_pos : 0 < m)
+    (hC : Set.Countable C) :
     (sampleMeasure D (2 * m)) {S | EventA C c D ε m S} ≤
     2 * (sampleMeasure D (2 * m)) {S | EventB C c D ε m S} := by
   -- Write P₁ ⊗ P₂ for the product of two m-sample measures.
@@ -325,10 +326,95 @@ theorem ghost_sample_bound
   let B_prod : Set ((Fin m → X) × (Fin m → X)) :=
     {p | ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c p.1 ∧
          hasManyErrors ε m h c p.2}
-  -- Measurability of A_prod and B_prod
-  -- (Requires measurability of C-existentials; see errors.md for discussion)
-  have hA_meas : MeasurableSet A_prod := by sorry
-  have hB_meas : MeasurableSet B_prod := by sorry
+  -- Measurability of A_prod and B_prod via countable union (using hC : Set.Countable C)
+  -- Helper: error set for any concept is measurable
+  have herrSet_for : ∀ hh : Concept X, MeasurableSet {x : X | isError hh c x} := fun hh => by
+    rw [show {x : X | isError hh c x} = symmDiff hh.val c.val from by
+      ext x; simp [isError, symmDiff, Set.mem_symmDiff]; tauto]
+    exact hh.2.symmDiff c.2
+  -- Helper: consistent set for any concept is a pi-set preimage
+  have hcons_pi_for : ∀ hh : Concept X,
+      {S₁ : Fin m → X | isConsistentWith hh c S₁} =
+      Set.pi Set.univ (fun _ => {x | isError hh c x}ᶜ) := fun hh => by
+    ext S; simp [isConsistentWith, Set.mem_pi, Set.mem_compl_iff]
+  have hA_meas : MeasurableSet A_prod := by
+    have hA_eq : A_prod = ⋃ hh ∈ C,
+        {p : (Fin m → X) × (Fin m → X) |
+          isBadHypothesis D c ε hh ∧ isConsistentWith hh c p.1} := by
+      show {p : (Fin m → X) × (Fin m → X) |
+          ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c p.1} = _
+      ext p; simp only [Set.mem_biUnion, Set.mem_setOf_eq]
+    rw [hA_eq]
+    apply MeasurableSet.biUnion hC
+    intro hh _
+    by_cases hbad : isBadHypothesis D c ε hh
+    · -- Bad case: set reduces to Prod.fst⁻¹(pi-set)
+      have heq : {p : (Fin m → X) × (Fin m → X) |
+            isBadHypothesis D c ε hh ∧ isConsistentWith hh c p.1} =
+          Prod.fst ⁻¹' Set.pi Set.univ (fun _ => {x | isError hh c x}ᶜ) := by
+        ext p; simp [isConsistentWith, Set.mem_pi, Set.mem_compl_iff, hbad]
+      rw [heq]
+      exact measurable_fst (MeasurableSet.univ_pi (fun _ => (herrSet_for hh).compl))
+    · -- Not-bad case: set is empty
+      have heq : {p : (Fin m → X) × (Fin m → X) |
+            isBadHypothesis D c ε hh ∧ isConsistentWith hh c p.1} = ∅ := by
+        ext p; simp [hbad]
+      rw [heq]; exact MeasurableSet.empty
+  have hB_meas : MeasurableSet B_prod := by
+    have hB_eq : B_prod = ⋃ hh ∈ C,
+        {p : (Fin m → X) × (Fin m → X) |
+          isBadHypothesis D c ε hh ∧ isConsistentWith hh c p.1 ∧
+          hasManyErrors ε m hh c p.2} := by
+      ext p
+      simp only [Set.mem_iUnion, Set.mem_setOf_eq]
+      constructor
+      · rintro ⟨hh, hhC, hbad, hcons, hmany⟩; exact ⟨hh, hbad, hhC, hcons, hmany⟩
+      · rintro ⟨hh, hbad, hhC, hcons, hmany⟩; exact ⟨hh, hhC, hbad, hcons, hmany⟩
+    rw [hB_eq]
+    apply MeasurableSet.biUnion hC
+    intro hh _
+    by_cases hbad : isBadHypothesis D c ε hh
+    · -- Bad case: set = {p | consistent p.1} ∩ {p | manyErrors p.2}
+      have heq : {p : (Fin m → X) × (Fin m → X) |
+            isBadHypothesis D c ε hh ∧ isConsistentWith hh c p.1 ∧
+            hasManyErrors ε m hh c p.2} =
+          {p | isConsistentWith hh c p.1} ∩ {p | hasManyErrors ε m hh c p.2} := by
+        ext p; simp [hbad]
+      rw [heq]
+      -- Measurability of consistent slice (preimage of pi-set under fst)
+      have hcons_meas : MeasurableSet {p : (Fin m → X) × (Fin m → X) |
+            isConsistentWith hh c p.1} := by
+        rw [show {p : (Fin m → X) × (Fin m → X) | isConsistentWith hh c p.1} =
+            Prod.fst ⁻¹' {S₁ : Fin m → X | isConsistentWith hh c S₁} from rfl,
+            hcons_pi_for hh]
+        exact measurable_fst (MeasurableSet.univ_pi (fun _ => (herrSet_for hh).compl))
+      -- Measurability of many-errors slice (preimage of measurable set under snd)
+      have hmany_meas : MeasurableSet {p : (Fin m → X) × (Fin m → X) |
+            hasManyErrors ε m hh c p.2} := by
+        have herrInd_meas : Measurable (fun x : X => if isError hh c x then (1:ℝ) else 0) := by
+          have : (fun x : X => if isError hh c x then (1:ℝ) else 0) =
+              Set.indicator {x | isError hh c x} 1 := by
+            funext x; simp [Set.indicator]
+          rw [this]; exact measurable_const.indicator (herrSet_for hh)
+        have herr_cast_meas : Measurable (fun S₂ : Fin m → X => (errorCount hh c S₂ : ℝ)) := by
+          have hcast : (fun S₂ : Fin m → X => (errorCount hh c S₂ : ℝ)) =
+              fun S₂ => ∑ i : Fin m, if isError hh c (S₂ i) then (1:ℝ) else 0 := by
+            funext S₂; simp [errorCount, Finset.sum_boole]
+          rw [hcast]
+          exact Finset.measurable_sum Finset.univ
+            (fun i _ => herrInd_meas.comp (measurable_pi_apply i))
+        have hmany_eq : {p : (Fin m → X) × (Fin m → X) | hasManyErrors ε m hh c p.2} =
+            Prod.snd ⁻¹' {S₂ | ε * ↑m / 2 ≤ (errorCount hh c S₂ : ℝ)} := by
+          ext p; simp [hasManyErrors]
+        rw [hmany_eq]
+        exact measurable_snd (measurableSet_le measurable_const herr_cast_meas)
+      exact hcons_meas.inter hmany_meas
+    · -- Not-bad case: set is empty
+      have heq : {p : (Fin m → X) × (Fin m → X) |
+            isBadHypothesis D c ε hh ∧ isConsistentWith hh c p.1 ∧
+            hasManyErrors ε m hh c p.2} = ∅ := by
+        ext p; simp [hbad]
+      rw [heq]; exact MeasurableSet.empty
   -- Preimage equalities
   have hf_preimage_A : f ⁻¹' A_prod = {S | EventA C c D ε m S} := by
     ext S

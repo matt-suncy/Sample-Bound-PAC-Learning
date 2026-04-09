@@ -208,6 +208,7 @@ theorem pac_sample_complexity_bound
     (hd : 0 < d) (hVC : VC_dim C ≤ d)
     (hmd : d ≤ 2 * m)
     (hm_size : 8 / ε ≤ (m : ℝ))
+    (hC : Set.Countable C)
     -- The full sample size condition after substituting Sauer-Shelah
     -- (uses natural log; matches the (1/2)^{εm/2} bound via log 2 factor):
     (hm : (2 / ε) * (d * Real.log (2 * Real.exp 1 * m / d) + Real.log (2 / δ)) ≤
@@ -219,7 +220,7 @@ theorem pac_sample_complexity_bound
   -- Step 1: ghost_sample_bound gives Pr[A] ≤ 2·Pr[B]
   calc (sampleMeasure D (2 * m)) {S | EventA C c D ε m S}
       ≤ 2 * (sampleMeasure D (2 * m)) {S | EventB C c D ε m S} :=
-        ghost_sample_bound C c D ε m hε hm_size hm_pos
+        ghost_sample_bound C c D ε m hε hm_size hm_pos hC
     -- Step 2-3: combine symmetrization and Sauer-Shelah to bound Pr[B] ≤ δ/2
     _ ≤ 2 * ENNReal.ofReal (δ / 2) := by
         apply mul_le_mul_left'
