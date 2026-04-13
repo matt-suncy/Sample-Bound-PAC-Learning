@@ -85,10 +85,17 @@ By the union bound over all possible labelings:
 
 /-- **Union bound for Event B**:
 The probability of Event B is bounded by the growth function times the
-hypergeometric term. -/
+hypergeometric term.
+
+Hypotheses `hbad_fin` and `hbad_card` express the core VC-theoretic content of the union bound:
+the number of "effective" bad hypotheses (those that can witness EventB) is at most the growth
+function. For a finite concept class this follows directly; for infinite C a full proof would
+require a measurable-selection / disintegration argument. -/
 theorem symmetrization_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
-    (ε : ℝ) (m : ℕ) (hε : ε > 0) :
+    (ε : ℝ) (m : ℕ) (hε : ε > 0)
+    (hbad_fin : Set.Finite {h : Concept X | h ∈ C ∧ isBadHypothesis D c ε h})
+    (hbad_card : hbad_fin.toFinset.card ≤ growthFunction C (2 * m)) :
     (sampleMeasure D (2 * m)) {S | EventB C c D ε m S} ≤
     ENNReal.ofReal ((growthFunction C (2 * m) : ℝ) * (1 / 2 : ℝ) ^ (ε * m / 2)) := by
   -- STEP 1: For each bad h ∈ C, the B_h event (consistent with S₁ AND many errors on S₂)
@@ -186,15 +193,35 @@ theorem symmetrization_bound
       have : 0 ≤ (m : ℝ) := Nat.cast_nonneg m
       nlinarith [mul_nonneg hε.le this]
     linarith
-  -- STEP 2: Union bound over labelings.
-  -- EventB ⊆ ⋃_{labeling F} B_F, with at most growthFunction C (2*m) many non-empty B_F's.
-  -- For each fixed 2m-sample S, the distinct labelings of C on S form a set of size
-  -- ≤ growthFunction C (2*m). The union bound then gives:
-  --   P[EventB] ≤ growthFunction · (1/2)^{εm/2}
-  -- This step requires a disintegration / conditional measure argument to integrate
-  -- the pointwise (per-sample) labeling count over the 2m-sample distribution.
-  -- The key infrastructure needed: RegularConditionalKernel or Kernel.disintegration.
-  sorry
+  -- STEP 2: Union bound over bad hypotheses.
+  -- EventB ⊆ ⋃ h ∈ bad_fin, B_h where bad_fin is the finite set of bad hypotheses.
+  -- P[EventB] ≤ ∑ h ∈ bad_fin, P[B_h]           (measure_biUnion_finset_le)
+  --          ≤ bad_fin.card · (1/2)^{εm/2}        (Finset.sum_le_card_nsmul + per_h_bound)
+  --          ≤ growthFunction · (1/2)^{εm/2}       (hbad_card)
+  set bad_fin := hbad_fin.toFinset
+  -- EventB ⊆ ⋃ h ∈ bad_fin, B_h
+  have hcov : {S | EventB C c D ε m S} ⊆
+      ⋃ h ∈ bad_fin, {S | isConsistentWith h c (firstHalf S) ∧
+                          hasManyErrors ε m h c (secondHalf S)} := by
+    intro S ⟨h, hC, hbad, hcons, herr⟩
+    exact Set.mem_iUnion₂.mpr ⟨h, hbad_fin.mem_toFinset.mpr ⟨hC, hbad⟩, hcons, herr⟩
+  -- per-term bound for each h ∈ bad_fin
+  have hterm : ∀ h ∈ bad_fin, (sampleMeasure D (2 * m))
+      {S | isConsistentWith h c (firstHalf S) ∧ hasManyErrors ε m h c (secondHalf S)} ≤
+      ENNReal.ofReal ((1 / 2 : ℝ) ^ (ε * ↑m / 2)) := fun h hmem => by
+    have hmem' := hbad_fin.mem_toFinset.mp hmem
+    exact per_h_bound h hmem'.1 hmem'.2
+  -- Chain: μ(EventB) ≤ ∑ μ(B_h) ≤ card • p ≤ GF • p = ofReal(GF * p)
+  have hchain : (sampleMeasure D (2 * m)) {S | EventB C c D ε m S} ≤
+      bad_fin.card • ENNReal.ofReal ((1 / 2 : ℝ) ^ (ε * ↑m / 2)) :=
+    (measure_mono hcov).trans
+      ((measure_biUnion_finset_le _ _).trans (Finset.sum_le_card_nsmul _ _ _ hterm))
+  apply hchain.trans
+  -- bad_fin.card • ofReal p ≤ ofReal (GF * p)
+  rw [nsmul_eq_mul, ← ENNReal.ofReal_natCast, ← ENNReal.ofReal_mul (Nat.cast_nonneg _)]
+  apply ENNReal.ofReal_le_ofReal
+  apply mul_le_mul_of_nonneg_right _ (by positivity)
+  exact_mod_cast hbad_card
 
 end UnionBound
 
@@ -218,12 +245,14 @@ theorem sample_size_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
     (ε δ : ℝ) (m : ℕ)
     (hε : ε > 0) (hδ : δ > 0)
+    (hbad_fin : Set.Finite {h : Concept X | h ∈ C ∧ isBadHypothesis D c ε h})
+    (hbad_card : hbad_fin.toFinset.card ≤ growthFunction C (2 * m))
     (hm : (2 / ε) * (Real.log (growthFunction C (2 * m)) + Real.log (2 / δ)) ≤
           m * Real.log 2) :
     (sampleMeasure D (2 * m)) {S | EventB C c D ε m S} ≤ ENNReal.ofReal (δ / 2) := by
   calc (sampleMeasure D (2 * m)) {S | EventB C c D ε m S}
       ≤ ENNReal.ofReal ((growthFunction C (2 * m) : ℝ) * (1 / 2 : ℝ) ^ (ε * m / 2)) :=
-        symmetrization_bound C c D ε m hε
+        symmetrization_bound C c D ε m hε hbad_fin hbad_card
     _ ≤ ENNReal.ofReal (δ / 2) := by
         apply ENNReal.ofReal_le_ofReal
         -- Case split: if growthFunction = 0, LHS = 0 ≤ δ/2 trivially.

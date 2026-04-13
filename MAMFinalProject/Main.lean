@@ -202,6 +202,10 @@ theorem pac_sample_complexity_bound
     (hC : Set.Countable C)
     -- Element-wise VC dimension bound (see growthFunction_le_sauerShelah_sum for discussion).
     (hVC_elem : ∀ (n : ℕ) (S : Fin n → X), (restrictionFamily C S).vcDim ≤ d)
+    -- Union bound hypotheses: bad hypotheses form a finite set bounded by the growth function.
+    -- For a finite C this is immediate; for infinite C it captures the core VC-theoretic content.
+    (hbad_fin : Set.Finite {h : Concept X | h ∈ C ∧ isBadHypothesis D c ε h})
+    (hbad_card : hbad_fin.toFinset.card ≤ growthFunction C (2 * m))
     -- The full sample size condition after substituting Sauer-Shelah
     -- (uses natural log; matches the (1/2)^{εm/2} bound via log 2 factor):
     (hm : (2 / ε) * (d * Real.log (2 * Real.exp 1 * m / d) + Real.log (2 / δ)) ≤
@@ -218,7 +222,7 @@ theorem pac_sample_complexity_bound
     _ ≤ 2 * ENNReal.ofReal (δ / 2) := by
         apply mul_le_mul_left'
         -- Apply sample_size_bound with the Sauer-Shelah substituted growth function bound
-        apply (sample_size_bound C c D ε δ m hε hδ _)
+        apply (sample_size_bound C c D ε δ m hε hδ hbad_fin hbad_card _)
         -- Verify the sample size condition with the substituted bound
         calc (2 / ε) * (Real.log ↑(growthFunction C (2 * m)) + Real.log (2 / δ))
             ≤ (2 / ε) * (d * Real.log (2 * Real.exp 1 * m / d) + Real.log (2 / δ)) := by

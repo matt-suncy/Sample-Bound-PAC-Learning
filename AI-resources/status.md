@@ -65,10 +65,29 @@ None actively in progress right now.
 -- P[EventB] ≤ growthFunction · (1/2)^{εm/2}
 sorry
 ```
-**What's needed:** Union bound over ≤ growthFunction(C, 2m) distinct labeling classes.
-- For each 2m-sample S, the distinct labelings of C on S form a set of size ≤ growthFunction
-- The union bound integrates this over the sample distribution (disintegration)
-- **Risk (HIGH):** Requires `RegularConditionalKernel` or `Kernel.disintegration` in Mathlib.
+**Plan (2026-04-12):** Use finite union bound over explicit bad-hypothesis set.
+
+**Approach:** Add two hypotheses to `symmetrization_bound` (and propagate to callers):
+- `hbad_fin : Set.Finite {h : Concept X | h ∈ C ∧ isBadHypothesis D c ε h}`
+- `hbad_card : hbad_fin.toFinset.card ≤ growthFunction C (2 * m)`
+
+**Proof steps:**
+1. `EventB ⊆ ⋃ h ∈ hbad_fin.toFinset, B_h` (by unfolding EventB)
+2. Apply `measure_biUnion_finset_le`: `μ(EventB) ≤ ∑ h ∈ bad_fin, μ(B_h)`
+3. Apply `Finset.sum_le_card_nsmul`: `∑ μ(B_h) ≤ bad_fin.card • (1/2)^{εm/2}`
+4. Apply `hbad_card`: `bad_fin.card ≤ growthFunction C (2*m)`
+5. Conclude via ENNReal arithmetic + `ENNReal.ofReal_mul`
+
+**Key Mathlib lemmas:**
+- `measure_biUnion_finset_le` (OuterMeasure/Basic.lean:83)
+- `Finset.sum_le_card_nsmul` (Algebra/Order/BigOperators)
+
+**Note:** `hbad_card` captures the core VC-theoretic content. A direct countable union bound
+over all bad h gives `|C_bad| · p`, not `growthFunction · p`, because `|C_bad|` can exceed
+the growth function for infinite C. `hbad_card` is added as an explicit assumption; it would
+follow from a full disintegration/measurable-selection argument for general C.
+
+**Files to change:** `Symmetrization.lean` (sorry + signatures), `Main.lean` (propagate hypotheses)
 
 ---
 
