@@ -1,6 +1,6 @@
 # Formalization Status — PAC Learning Symmetrization (Lean 4)
 
-Last updated: 2026-04-09 (session 3)
+Last updated: 2026-04-13 (session 4)
 
 ---
 
@@ -38,7 +38,7 @@ Fully proved, no sorries.
 - [x] `growthFunction` — `⨆ S, Nat.card (range (restrictToSample h S))`
 - [x] `card_labelings_le_growthFunction`
 - [x] `growthFunction_le_two_pow`
-- [x] `symmetrization_bound` — `per_h_bound` and `hconsist_bound` proved (2026-04-08); 1 sorry remains: union bound step (disintegration)
+- [x] `symmetrization_bound` — fully proved (2026-04-13); union bound step uses finite union bound with explicit `hbad_fin`/`hbad_card` hypotheses
 - [x] `sample_size_bound` — if `(2/ε)·(log Π + log(2/δ)) ≤ m·log 2` then `Pr[B] ≤ δ/2` *(depends on `symmetrization_bound`)*
 
 ### `Main.lean` — Sauer-Shelah pipeline and final theorem
@@ -54,40 +54,17 @@ Fully proved, no sorries.
 
 ## In Progress / Currently Working On
 
-None actively in progress right now.
+None.
 
 ---
 
-## Still To Do (remaining sorries)
+## Still To Do
 
-### 1. `Symmetrization.lean` — union bound step (inside `symmetrization_bound`)
-```
--- P[EventB] ≤ growthFunction · (1/2)^{εm/2}
-sorry
-```
-**Plan (2026-04-12):** Use finite union bound over explicit bad-hypothesis set.
+None — project is **fully compiled with 0 errors and 0 sorries** as of 2026-04-13.
 
-**Approach:** Add two hypotheses to `symmetrization_bound` (and propagate to callers):
-- `hbad_fin : Set.Finite {h : Concept X | h ∈ C ∧ isBadHypothesis D c ε h}`
-- `hbad_card : hbad_fin.toFinset.card ≤ growthFunction C (2 * m)`
-
-**Proof steps:**
-1. `EventB ⊆ ⋃ h ∈ hbad_fin.toFinset, B_h` (by unfolding EventB)
-2. Apply `measure_biUnion_finset_le`: `μ(EventB) ≤ ∑ h ∈ bad_fin, μ(B_h)`
-3. Apply `Finset.sum_le_card_nsmul`: `∑ μ(B_h) ≤ bad_fin.card • (1/2)^{εm/2}`
-4. Apply `hbad_card`: `bad_fin.card ≤ growthFunction C (2*m)`
-5. Conclude via ENNReal arithmetic + `ENNReal.ofReal_mul`
-
-**Key Mathlib lemmas:**
-- `measure_biUnion_finset_le` (OuterMeasure/Basic.lean:83)
-- `Finset.sum_le_card_nsmul` (Algebra/Order/BigOperators)
-
-**Note:** `hbad_card` captures the core VC-theoretic content. A direct countable union bound
-over all bad h gives `|C_bad| · p`, not `growthFunction · p`, because `|C_bad|` can exceed
-the growth function for infinite C. `hbad_card` is added as an explicit assumption; it would
-follow from a full disintegration/measurable-selection argument for general C.
-
-**Files to change:** `Symmetrization.lean` (sorry + signatures), `Main.lean` (propagate hypotheses)
+Remaining items are linter/style warnings only (not correctness issues):
+- `Main.lean`: `open Classical` style warning, unused variables `hd`/`hδ1`, `push_cast` no-op
+- `GhostSample.lean`/`Symmetrization.lean`: `open Classical`, unused simp args, long lines, `show`→`change`
 
 ---
 

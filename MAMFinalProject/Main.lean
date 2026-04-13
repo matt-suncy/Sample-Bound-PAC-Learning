@@ -220,11 +220,11 @@ theorem pac_sample_complexity_bound
         ghost_sample_bound C c D ε m hε hm_size hm_pos hC
     -- Step 2-3: combine symmetrization and Sauer-Shelah to bound Pr[B] ≤ δ/2
     _ ≤ 2 * ENNReal.ofReal (δ / 2) := by
-        apply mul_le_mul_left'
-        -- Apply sample_size_bound with the Sauer-Shelah substituted growth function bound
-        apply (sample_size_bound C c D ε δ m hε hδ hbad_fin hbad_card _)
-        -- Verify the sample size condition with the substituted bound
-        calc (2 / ε) * (Real.log ↑(growthFunction C (2 * m)) + Real.log (2 / δ))
+        apply mul_le_mul_of_nonneg_left _ (by norm_num)
+        -- Apply sample_size_bound; remaining goal is the sample size condition
+        apply sample_size_bound C c D ε δ m hε hδ hbad_fin hbad_card
+        -- Verify the sample size condition with the Sauer-Shelah substituted bound
+        calc (2 / ε) * (Real.log (growthFunction C (2 * m) : ℝ) + Real.log (2 / δ))
             ≤ (2 / ε) * (d * Real.log (2 * Real.exp 1 * m / d) + Real.log (2 / δ)) := by
               apply mul_le_mul_of_nonneg_left _ (by positivity)
               gcongr
