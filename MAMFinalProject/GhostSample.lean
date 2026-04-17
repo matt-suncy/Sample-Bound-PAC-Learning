@@ -6,7 +6,7 @@ import Mathlib.Probability.Moments.Variance
 import Mathlib.Probability.Independence.Basic
 import Mathlib.MeasureTheory.Integral.Pi
 
-open MeasureTheory ProbabilityTheory Set Classical
+open MeasureTheory ProbabilityTheory Set
 
 variable {X : Type*} [MeasurableSpace X]
 

@@ -8,7 +8,7 @@ import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
 import Mathlib.MeasureTheory.Constructions.Pi
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 
-open MeasureTheory ProbabilityTheory Real Set Classical
+open MeasureTheory ProbabilityTheory Real Set
 
 variable {X : Type*} [MeasurableSpace X]
 

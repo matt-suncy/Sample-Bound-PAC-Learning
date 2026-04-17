@@ -5,7 +5,7 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Combinatorics.SetFamily.Shatter
 
-open MeasureTheory ProbabilityTheory Real Set Classical Finset
+open MeasureTheory ProbabilityTheory Real Set Finset
 
 variable {X : Type*} [MeasurableSpace X]
 
