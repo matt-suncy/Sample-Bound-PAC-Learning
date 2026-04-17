@@ -17,7 +17,10 @@ Concepts and hypotheses: measurable subsets of X.
 /-- A concept or hypothesis is a measurable set over X. -/
 def Concept (X : Type*) [MeasurableSpace X] := { s : Set X // MeasurableSet s }
 
-/-- The true error of h relative to target c under D: the measure of points where h and c disagree. -/
+/-- The true error of h relative to target c under D: the measure of points where
+ h and c disagree. This is a measure space as opposed to a probability measure space,
+ this easier because we can just look at the absolute value of differences between
+ the two sets (h and c) -/
 noncomputable def trueError (D : Measure X) (h c : Concept X) : ENNReal :=
   D (symmDiff h.val c.val)
 
@@ -30,11 +33,13 @@ noncomputable instance isError.decidable {h c : Concept X} :
     DecidablePred (isError h c) :=
   fun _ => Classical.propDecidable _
 
-/-- The number of indices i ∈ Fin m where h and c disagree on S i. -/
+/-- The number of indices i ∈ Fin m where h and c disagree on S i.
+NOTE: Should 'S' be infinite instead? -/
 noncomputable def errorCount {m : ℕ} (h c : Concept X) (S : Fin m → X) : ℕ :=
   (Finset.univ.filter fun i => isError h c (S i)).card
 
-/-- The empirical error rate of h on c for sample S. -/
+/-- The empirical error rate of h on c for sample S.
+NOTE: Why is this noncomputable? -/
 noncomputable def empiricalError {m : ℕ} (h c : Concept X) (S : Fin m → X) : ℝ :=
   (errorCount h c S : ℝ) / m
 
@@ -59,6 +64,7 @@ def secondHalf {m : ℕ} (S : Fin (2 * m) → X) : Fin m → X :=
 def combineHalves {m : ℕ} (S₁ S₂ : Fin m → X) : Fin (2 * m) → X :=
   fun i => if h : i.val < m then S₁ ⟨i.val, h⟩ else S₂ ⟨i.val - m, by omega⟩
 
+/-- NOTE: check warnings in this section -/
 @[simp]
 lemma firstHalf_combineHalves {m : ℕ} (S₁ S₂ : Fin m → X) :
     firstHalf (combineHalves S₁ S₂) = S₁ := by
@@ -74,7 +80,7 @@ lemma secondHalf_combineHalves {m : ℕ} (S₁ S₂ : Fin m → X) :
   rw [dif_neg hlt]
   exact congrArg S₂ (Fin.ext (by simp [Nat.add_sub_cancel_left]))
 
-/-- sampleMeasure is a probability measure when D is. -/
+/-- sampleMeasure is a probability measure when D is a probability measure. -/
 instance sampleMeasure_isProbability (D : Measure X) [IsProbabilityMeasure D] (m : ℕ) :
     IsProbabilityMeasure (sampleMeasure D m) := by
   unfold sampleMeasure

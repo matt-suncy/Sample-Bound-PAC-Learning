@@ -150,7 +150,7 @@ lemma bernoulli_error_lower_bound
         (Measure.pi (fun _ : Fin m => D)) := fun i =>
       (memLp_of_bounded
         (Filter.Eventually.of_forall fun S => by
-          show (if isError h c (S i) then (1:ℝ) else 0) ∈ Set.Icc 0 1
+          change (if isError h c (S i) then (1:ℝ) else 0) ∈ Set.Icc 0 1
           split_ifs <;> norm_num)
         ((herrInd_meas.comp (measurable_pi_apply i)).aestronglyMeasurable) 2).integrable
         (by norm_num)
@@ -176,7 +176,7 @@ lemma bernoulli_error_lower_bound
       -- Rewrite Y and sampleMeasure to explicit forms, then apply variance_sum_pi
       rw [show Y = ∑ i : Fin m, (fun S : Fin m → X => errInd (S i)) from by
             funext S
-            show ∑ i : Fin m, errInd (S i) = (∑ i : Fin m, (fun S : Fin m → X => errInd (S i))) S
+            change ∑ i : Fin m, errInd (S i) = (∑ i : Fin m, (fun S : Fin m → X => errInd (S i))) S
             simp [Finset.sum_apply],
           show sampleMeasure D m = Measure.pi (fun _ : Fin m => D) from rfl]
       haveI : ∀ i : Fin m, IsProbabilityMeasure ((fun _ : Fin m => D) i) :=
@@ -291,7 +291,8 @@ lemma sampleMeasure_eq_prod (D : Measure X) [IsProbabilityMeasure D] (m : ℕ) :
       exact Equiv.piCongrLeft_symm_apply (fun _ => X) f S j
     rw [hcoe]
     -- sumPiEquivProdPi (S ∘ f) reduces to (fun i => S (f (.inl i)), fun i => S (f (.inr i)))
-    -- which equals (firstHalf S, secondHalf S) since f (.inl i) = ⟨i.val,_⟩ and f (.inr i) = ⟨m+i.val,_⟩
+    -- which equals (firstHalf S, secondHalf S) since
+    -- f (.inl i) = ⟨i.val,_⟩ and f (.inr i) = ⟨m+i.val,_⟩
     apply Prod.ext
     · funext i; simp only [firstHalf]; congr 1
     · funext i; simp only [secondHalf]; congr 1
@@ -341,7 +342,7 @@ theorem ghost_sample_bound
     have hA_eq : A_prod = ⋃ hh ∈ C,
         {p : (Fin m → X) × (Fin m → X) |
           isBadHypothesis D c ε hh ∧ isConsistentWith hh c p.1} := by
-      show {p : (Fin m → X) × (Fin m → X) |
+      change {p : (Fin m → X) × (Fin m → X) |
           ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c p.1} = _
       ext p; simp only [Set.mem_iUnion, Set.mem_setOf_eq]
       constructor
@@ -447,7 +448,7 @@ theorem ghost_sample_bound
   apply lintegral_mono
   intro S₁
   -- Beta-reduce the lambda-wrapped goal
-  show P₁ (Prod.mk S₁ ⁻¹' A_prod) ≤ 2 * P₁ (Prod.mk S₁ ⁻¹' B_prod)
+  change P₁ (Prod.mk S₁ ⁻¹' A_prod) ≤ 2 * P₁ (Prod.mk S₁ ⁻¹' B_prod)
   by_cases hS₁ : ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c S₁
   · -- S₁ is in A_half: A_prod section is all of univ
     have hAsec : Prod.mk S₁ ⁻¹' A_prod = Set.univ := by
