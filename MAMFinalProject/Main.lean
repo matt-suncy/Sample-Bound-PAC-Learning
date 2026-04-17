@@ -143,7 +143,6 @@ lemma sum_choose_le_pow (n d : ℕ) (hd : 0 < d) (hnd : d ≤ n) :
           rw [add_pow]
           apply Finset.sum_congr rfl
           intro k _
-          push_cast
           ring
     _ ≤ Real.exp d := by
           calc (r + 1) ^ n
