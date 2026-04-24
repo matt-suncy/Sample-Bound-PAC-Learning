@@ -6,7 +6,6 @@
 - Bridge the Casting Gap: Create dedicated, atomic helper lemmas whose sole purpose is to cast bounds from one type to another (e.g., moving a combinatorial bound from ℕ to ℝ).
 - Keep lemmas/theorems short and focused. If a proof requires more than/ 3-4 distinct logical steps, consider whether it can be decomposed into smaller, reusable lemmas.
 
-## Lemmas that are ready for refactroing
-Hypgergeometric.lean:
-- *everything*
+## Files that are ready for refactoring
+- GhostSample.lean
 
