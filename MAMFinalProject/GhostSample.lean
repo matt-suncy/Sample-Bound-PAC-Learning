@@ -25,6 +25,7 @@ The lemma shows Pr[A] ≤ 2·Pr[B], which is the key step in the symmetrization 
 section Events
 
 /-- Hypothesis h is "bad": its true error is at least ε. -/
+-- NOTE: we should consider stating that 0 < ε < 1 in the definition
 def isBadHypothesis (D : Measure X) [IsProbabilityMeasure D] (c : Concept X) (ε : ℝ)
     (h : Concept X) : Prop :=
   ε ≤ (trueError D h c).toReal
@@ -43,6 +44,7 @@ def EventA (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityM
   ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c (firstHalf S)
 
 /-- **Event B**: there exists a bad hypothesis consistent with S₁ and with ≥ εm/2 errors on S₂. -/
+-- NOTE: maybe we should not define event B to include that h is a bad hypothesis.
 def EventB (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
     (ε : ℝ) (m : ℕ) (S : Fin (2 * m) → X) : Prop :=
   ∃ h ∈ C, isBadHypothesis D c ε h ∧ isConsistentWith h c (firstHalf S)
@@ -86,6 +88,10 @@ lemma error_indicator_mean_ge (D : Measure X) [IsProbabilityMeasure D]
 set_option maxHeartbeats 800000 in
 /-- **Key probabilistic lemma**: For a bad hypothesis h, the probability that a fresh
 m-point sample (drawn iid from D) has ≥ εm/2 errors is ≥ 1/2.
+
+Note: The default (400000 heartbeats) isn't enough because that lemma
+involves heavy automation — likely simp, norm_num, or linarith calls over real-valued probability expressions that take a long time to elaborate. Without it, Lean
+would abort with a "maximum heartbeats reached" error mid-proof.
 
 This follows from Chebyshev's inequality applied to the sum of m iid Bernoulli(p)
 random variables (p ≥ ε ≥ 0), using the assumption m ≥ 8/ε. -/
