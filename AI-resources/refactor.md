@@ -8,4 +8,5 @@
 
 ## Files that are ready for refactoring
 - GhostSample.lean
+- Symmetrization.lean
 
