@@ -17,11 +17,15 @@ variable {X : Type*} [MeasurableSpace X]
 
 This file combines:
 1. The growth function (bounding the number of distinct hypothesis labelings)
-2. The hypergeometric bound (from Hypergeometric.lean)
-3. A union bound over all labelings
-to obtain Pr[B] ≤ Π_C(2m) · 2^{-εm/2}.
+2. A per-hypothesis exponential bound: P[consistent ∧ manyErrors] ≤ (1/2)^{εm/2}
+   via (1−p)^m ≤ exp(−pm) ≤ exp(−εm) ≤ (1/2)^{εm/2}  (see `per_hypothesis_bound`)
+3. A union bound over all bad hypotheses
+to obtain Pr[B] ≤ Π_C(2m) · (1/2)^{εm/2}.
 
 Then by setting this ≤ δ/2, we get the required sample size condition.
+
+Note: `Hypergeometric.lean` contains an alternative combinatorial route to step 2
+via C(m,l)/C(2m,l) ≤ (1/2)^l, but it is not used in the current proofs.
 -/
 
 section GrowthFunction
