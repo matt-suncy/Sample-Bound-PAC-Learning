@@ -247,6 +247,8 @@ theorem pac_sample_complexity_bound
     -- Union bound hypotheses: bad hypotheses form a finite set bounded by the growth function.
     -- For a finite C this is immediate; for infinite C it captures the core VC-theoretic content.
     (hbad_fin : Set.Finite {h : Concept X | h ∈ C ∧ isBadHypothesis D c ε h})
+    -- This is true because the growth function is the upper bound on the number of
+    -- possible labeling therefore also on the number of hypotheses for a fixed sample S.
     (hbad_card : hbad_fin.toFinset.card ≤ growthFunction C (2 * m))
     -- The full sample size condition after substituting Sauer-Shelah
     -- (uses natural log; matches the (1/2)^{εm/2} bound via log 2 factor):

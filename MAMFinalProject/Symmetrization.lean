@@ -189,7 +189,10 @@ hypergeometric term.
 Hypotheses `hbad_fin` and `hbad_card` express the core VC-theoretic content of the union bound:
 the number of "effective" bad hypotheses (those that can witness EventB) is at most the growth
 function. For a finite concept class this follows directly; for infinite C a full proof would
-require a measurable-selection / disintegration argument. -/
+require a measurable-selection / disintegration argument.
+
+NOTE: may need proof that the cradinality of the set of bad hypotheses is at most the growth
+function -/
 theorem symmetrization_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
     (ε : ℝ) (m : ℕ) (hε : ε > 0)
