@@ -1,3 +1,59 @@
+## Resolved Design Decisions
+
+### Framework
+- **React 18 + Vite + TypeScript** + **Tailwind CSS** + **React Router v6**
+- **reactflow v11** + **@dagrejs/dagre** — dependency graph with auto-layout (`rankdir: 'BT'`, main theorem at top)
+- **react-syntax-highlighter** — Lean code display with custom Abyss-inspired dark style, `haskell` grammar
+
+### Fonts
+- **Website Title**: Caveat (Google Fonts) — handwritten/sketchy, thin, clean
+- **All other text**: Inter (Google Fonts) — geometric, clean, not overly round
+
+### Colors
+| Role | Value |
+|---|---|
+| Page background | `#FAFAFA` |
+| Heading text | `#111111` |
+| Body / H3 text | `#444444` |
+| Box border | `1px solid #111111` |
+| Box shadow | `3px 3px 0 rgba(0,0,0,0.08)` |
+| Regular node background | `#FFFFFF` |
+| Highlighted node background | `#EEF3FF` |
+| Code panel background | `#000C18` (Abyss) |
+
+### Dependency Graph — Node Scope
+- **All** public + private **lemmas / theorems / instances** (no `def` items)
+- ~60 nodes, ~71 edges derived from explicit proof calls
+- **Highlighted nodes** (`#EEF3FF` background):
+  - Definitions.lean: `sampleMeasure_isProbability`
+  - GhostSample.lean: `bernoulli_error_lower_bound`, `ghost_sample_bound`
+  - Hypergeometric.lean: `hypergeometric_bound`
+  - Symmetrization.lean: `symmetrization_bound`, `sample_size_bound`
+  - Main.lean: `sauer_shelah_bound`, `pac_sample_complexity_bound`
+- Private nodes render with italic label text
+- `isHighlighted` and `isPrivate` flags in `frontend/src/data/graphData.ts` control all styling — change one flag per node, no component edits needed
+
+### Definitions Box — Scope
+- **All** `def` / `noncomputable def` items from all files, including private `errIndicator`
+- 20 definitions total, in file order
+- Clicking a code block opens the CodePopup panel
+
+### Content Placeholders
+All placeholder text is marked `// PLACEHOLDER:` in:
+- `frontend/src/data/content.ts` — About goals, Methods columns, GitHub URL
+- `frontend/src/data/definitions.ts` — definition descriptions
+- `frontend/src/data/graphData.ts` — node labels and naturalLanguageStatement strings
+
+### How to Run
+```bash
+cd frontend
+npm install
+npm run dev      # dev server at http://localhost:5173
+npm run build    # production build (TypeScript check + Vite bundle)
+```
+
+---
+
 ## Goal
 
 I have a formalization in Lean of the sample complexity of PAC learning. It is a dense multi-file proof since computational learning theory is minimally developed in Mathlib4. I want to create a website to show the dependencies of the lemmas/theorems from the formalization, provide human readable statements of those theorems, and connect the human readable theorems to lean code.

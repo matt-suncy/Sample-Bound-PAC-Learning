@@ -1,0 +1,64 @@
+/* SITE FONT — change family here to swap fonts everywhere */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    background-color: #FAFAFA;
+    color: #111111;
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: #FAFAFA;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  /* .font-title is now the same as the body font — kept for semantic clarity */
+  .font-title {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+  }
+
+  /* Shared box style for any card/panel */
+  .box-style {
+    border: 1px solid #111111;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.08);
+    background-color: #ffffff;
+  }
+
+  /* Highlighted (featured) node background */
+  .node-highlight {
+    background-color: #EEF3FF;
+  }
+}
+
+/* KaTeX overrides
+   - font-size: KaTeX defaults to 1.21em (larger than surrounding text); set to 1em to match.
+   - font-weight: KaTeX inherits bold from container elements (e.g. headings, <strong>);
+     force normal weight so math never appears bold regardless of context. */
+.katex {
+  font-size: 1em !important;
+  font-weight: normal !important;
+}
+.katex * {
+  font-weight: normal !important;
+}
+
+/* React Flow overrides — keep canvas background clean */
+.react-flow__renderer {
+  background-color: #FAFAFA;
+}
+
+.react-flow__background {
+  background-color: #FAFAFA;
+}
