@@ -505,7 +505,7 @@ lemma secondHalf_combineHalves {m : ℕ} (S₁ S₂ : Fin m → X) :
 `lemma isError_measurableSet (h c : Concept X) : MeasurableSet {x : X | isError h c x} :=
   isError_set_symmDiff h c ▸ h.2.symmDiff c.2`,
   },
-  {
+/*   {
     id: 'error_indicator_mean_ge',
     file: 'GhostSample.lean',
     label: 'Error Indicator Mean ≥ ε for Bad Hypotheses',
@@ -517,7 +517,7 @@ lemma secondHalf_combineHalves {m : ℕ} (S₁ S₂ : Fin m → X) :
     (hbad : ε ≤ (trueError D h c).toReal) :
     ε ≤ (D {x | isError h c x}).toReal := by
   rw [isError_set_symmDiff]; exact hbad`,
-  },
+  }, */
   {
     id: 'bernoulli_error_lower_bound',
     file: 'GhostSample.lean',
@@ -1201,7 +1201,7 @@ lemma bernoulli_error_lower_bound
     isHighlighted: true,
     label: 'PAC Sample Complexity Bound',
     // PLACEHOLDER:
-    naturalLanguageStatement: 'If $m \\geq 8/\\varepsilon$ and $\\frac{2}{\\varepsilon}\\!\\left(d\\log\\frac{2em}{d}+\\log\\frac{2}{\\delta}\\right)\\leq m\\log 2$, then $\\Pr_{S\\sim\\mathcal{D}^{2m}}[\\exists h\\in\\mathcal{C}: \\mathrm{error}(h)\\geq\\varepsilon,\\ h\\text{ consistent with }S_1]\\leq\\delta$.',
+    naturalLanguageStatement: 'Fix any concept class $\\mathcal{C}$, fix any distribution $\\mathcal{D}$, any target concept $c\\in\\mathcal{C}$: given a dataset of $m \\geq 8/\\varepsilon$, $m \\geq \\frac{2}{\\varepsilon}\\!\\left(d\\log\\frac{2em}{d}+\\log\\frac{2}{\\delta}\\right)$ samples, then for any $\\varepsilon$ and $\\delta$, the probability all bad hypotheses $h\\in\\mathcal{C}$ are inconsistent with the dataset is at least $1-\\delta$. $\\Pr_{S\\sim\\mathcal{D}^{2m}}[\\exists h\\in\\mathcal{C}: \\mathrm{error}(h)\\geq\\varepsilon,\\ h\\text{ consistent with }S_1]\\leq\\delta$.',
     leanCode:
 `theorem pac_sample_complexity_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
@@ -1243,7 +1243,7 @@ export const theoremEdges: TheoremEdge[] = [
   // isError_set_symmDiff is the base for measurability and integral bridges
   { source: 'isError_set_symmDiff', target: 'isError_measurableSet' },
   { source: 'isError_set_symmDiff', target: 'errIndicator_integral' },
-  { source: 'isError_set_symmDiff', target: 'error_indicator_mean_ge' },
+  //{ source: 'isError_set_symmDiff', target: 'error_indicator_mean_ge' },
 
   // errIndicator infrastructure
   { source: 'errIndicator_eq_indicator', target: 'errIndicator_measurable' },

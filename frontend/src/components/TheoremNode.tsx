@@ -10,7 +10,6 @@ export const NODE_HEIGHT_COLLAPSED = 60
 
 function TheoremNode({ data }: NodeProps<TheoremNodeData>) {
   const [hovered, setHovered] = useState(false)
-
   const bg = data.isHighlighted ? '#EEF3FF' : '#FFFFFF'
 
   return (
