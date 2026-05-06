@@ -524,7 +524,7 @@ lemma secondHalf_combineHalves {m : ℕ} (S₁ S₂ : Fin m → X) :
     isHighlighted: true,
     label: 'Bernoulli Error Lower Bound',
     // PLACEHOLDER:
-    naturalLanguageStatement: 'For a bad hypothesis $h$ with $\\mathrm{error}_{\\mathcal{D}}(h,c) \\geq \\varepsilon$ and sample size $m \\geq 8/\\varepsilon$, a fresh $m$-point i.i.d. sample contains at least $\\varepsilon m/2$ errors with probability at least $1/2$. Proved via Chebyshev applied to $m$ i.i.d. Bernoulli$(p)$ variables.',
+    naturalLanguageStatement: 'For a bad hypothesis $h$ with $\\mathrm{error}_{\\mathcal{D}}(h,c) \\geq \\varepsilon$ and sample size $m \\geq 8/\\varepsilon$, a fresh $m$-point i.i.d. sample contains at least $\\varepsilon m/2$ errors with probability at least $1/2$. Proved via Chebyshev applied to $m$ i.i.d. Bernoulli$(p)$ variables. This is needed to show that $\\Pr[A] \\leq 2 \\cdot \\Pr[B]$.',
     leanCode:
 `set_option maxHeartbeats 800000 in
 lemma bernoulli_error_lower_bound
@@ -604,7 +604,7 @@ lemma bernoulli_error_lower_bound
     isHighlighted: true,
     label: 'Ghost Sample Lemma: Pr[A] ≤ 2·Pr[B]',
     // PLACEHOLDER:
-    naturalLanguageStatement: '$\\Pr[A] \\leq 2\\Pr[B]$: the probability that some bad $h \\in \\mathcal{C}$ is consistent with the first-half sample $S_1$ is at most twice the probability that it also makes $\\geq \\varepsilon m/2$ errors on the ghost half $S_2$.',
+    naturalLanguageStatement: '$\\Pr[A] \\leq 2\\Pr[B]$: the probability that some bad $h \\in \\mathcal{C}$ is consistent with the first-half sample $S_1$ is at most twice the probability that it also makes $\\geq \\varepsilon m/2$ errors on the ghost half $S_2$. This theorem bounds $\\Pr[A]$ in terms of $\\Pr[B]$ which then allows us to apply the bound on $\\Pr[B]$ in terms of $\\delta$.',
     leanCode:
 `theorem ghost_sample_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
@@ -948,7 +948,7 @@ lemma bernoulli_error_lower_bound
     isHighlighted: true,
     label: 'Symmetrization Bound: Pr[B] ≤ Π_C(2m) · (1/2)^(εm/2)',
     // PLACEHOLDER:
-    naturalLanguageStatement: '$\\Pr[B] \\leq \\Pi_{\\mathcal{C}}(2m) \\cdot (1/2)^{\\varepsilon m/2}$, where $\\Pi_{\\mathcal{C}}(2m)$ is the growth function. The union bound over at most $\\Pi_{\\mathcal{C}}(2m)$ distinct labelings, each bounded by $(1/2)^{\\varepsilon m/2}$ via per_hypothesis_bound.',
+    naturalLanguageStatement: '$\\Pr[B] \\leq \\Pi_{\\mathcal{C}}(2m) \\cdot (1/2)^{\\varepsilon m/2}$, where $\\Pi_{\\mathcal{C}}(2m)$ is the growth function. The union bound over at most $\\Pi_{\\mathcal{C}}(2m)$ distinct labelings, each bounded by $(1/2)^{\\varepsilon m/2}$ via per_hypothesis_bound. This theorem is a union bound applied on the per_hypothesis_bound over all possible labelings (the growth function).',
     leanCode:
 `theorem symmetrization_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
@@ -983,7 +983,7 @@ lemma bernoulli_error_lower_bound
     isHighlighted: true,
     label: 'Sample Size Bound: Pr[B] ≤ δ/2',
     // PLACEHOLDER:
-    naturalLanguageStatement: 'If $\\frac{2}{\\varepsilon}\\!\\left(\\log\\Pi_{\\mathcal{C}}(2m) + \\log\\frac{2}{\\delta}\\right) \\leq m\\log 2$, then $\\Pr[B] \\leq \\delta/2$. Obtained by taking logarithms of the symmetrization bound and rearranging.',
+    naturalLanguageStatement: 'If $\\frac{2}{\\varepsilon}\\!\\left(\\log\\Pi_{\\mathcal{C}}(2m) + \\log\\frac{2}{\\delta}\\right) \\leq m\\log 2$, then $\\Pr[B] \\leq \\delta/2$. Obtained by taking logarithms of the symmetrization bound and rearranging. This theorem inserts the minimum number of samples needed to ensure Event B occurs with a low probability. This a precise way to say that a hypothesis that is consistent with $m$ samples is very unlikely to be bad.',
     leanCode:
 `theorem sample_size_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
@@ -1182,7 +1182,7 @@ lemma bernoulli_error_lower_bound
     isHighlighted: true,
     label: 'Sauer-Shelah Bound: Π_C(2m) ≤ (2em/d)^d',
     // PLACEHOLDER:
-    naturalLanguageStatement: '$\\Pi_{\\mathcal{C}}(2m) \\leq \\left(\\frac{2em}{d}\\right)^d$ where $d = \\mathrm{VCdim}(\\mathcal{C})$. The growth function is at most polynomial in $m$, enabling the final probability bound.',
+    naturalLanguageStatement: '$\\Pi_{\\mathcal{C}}(2m) \\leq \\left(\\frac{2em}{d}\\right)^d$ where $d = \\mathrm{VCdim}(\\mathcal{C})$. The growth function is at most polynomial in $m$, enabling the final probability bound. This motivates the whole proof because we can achieve a polynomial bound on the number of samples based on the VC dimension.',
     leanCode:
 `theorem sauer_shelah_bound (C : Set (Concept X)) (m d : ℕ)
     (hd : 0 < d) (hVC : VC_dim C ≤ d) (hmd : d ≤ 2 * m)
@@ -1201,7 +1201,7 @@ lemma bernoulli_error_lower_bound
     isHighlighted: true,
     label: 'PAC Sample Complexity Bound',
     // PLACEHOLDER:
-    naturalLanguageStatement: 'Fix any concept class $\\mathcal{C}$, fix any distribution $\\mathcal{D}$, any target concept $c\\in\\mathcal{C}$: given a dataset of $m \\geq 8/\\varepsilon$, $m \\geq \\frac{2}{\\varepsilon}\\!\\left(d\\log\\frac{2em}{d}+\\log\\frac{2}{\\delta}\\right)$ samples, then for any $\\varepsilon$ and $\\delta$, the probability all bad hypotheses $h\\in\\mathcal{C}$ are inconsistent with the dataset is at least $1-\\delta$. $\\Pr_{S\\sim\\mathcal{D}^{2m}}[\\exists h\\in\\mathcal{C}: \\mathrm{error}(h)\\geq\\varepsilon,\\ h\\text{ consistent with }S_1]\\leq\\delta$.',
+    naturalLanguageStatement: 'Fix any concept class $\\mathcal{C}$, fix any distribution $\\mathcal{D}$, any target concept $c\\in\\mathcal{C}$: given a dataset of $m \\geq 8/\\varepsilon$, $m \\geq \\frac{2}{\\varepsilon}\\!\\left(d\\log\\frac{2em}{d}+\\log\\frac{2}{\\delta}\\right)$ samples, then for any $\\varepsilon$ and $\\delta$, the probability all bad hypotheses $h\\in\\mathcal{C}$ are inconsistent with the dataset is at least $1-\\delta$. More formally: $\\Pr_{S\\sim\\mathcal{D}^{2m}}[\\exists h\\in\\mathcal{C}: \\mathrm{error}(h)\\geq\\varepsilon,\\ h\\text{ consistent with }S_1]\\leq\\delta$.',
     leanCode:
 `theorem pac_sample_complexity_bound
     (C : Set (Concept X)) (c : Concept X) (D : Measure X) [IsProbabilityMeasure D]
