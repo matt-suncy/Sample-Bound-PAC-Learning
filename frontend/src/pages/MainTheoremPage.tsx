@@ -26,7 +26,7 @@ export default function MainTheoremPage() {
           className="font-inter text-[#888888] mt-3"
           style={{ fontSize: '0.875rem' }}
         >
-          Click a node to view its Lean code. Hover to see its natural language statement.
+          Click a node to view its Lean code. Hover to see its natural language statement and usage.
         </p>
       </div>
 

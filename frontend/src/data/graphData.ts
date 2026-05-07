@@ -661,7 +661,7 @@ lemma bernoulli_error_lower_bound
     file: 'GhostSample.lean',
     label: 'Event B Implies Event A',
     // PLACEHOLDER:
-    naturalLanguageStatement: 'Event B (bad hypothesis consistent with S₁ and making many errors on S₂) implies Event A (bad hypothesis consistent with S₁). Immediate from the definitions.',
+    naturalLanguageStatement: 'Event B (bad hypothesis consistent with S₁ and making many errors on S₂) implies Event A (bad hypothesis consistent with S₁). Immediate from the definitions. An unused lemma from the initial formalization plan and the original natural language proof.',
     leanCode:
 `lemma eventB_implies_eventA (C : Set (Concept X)) (c : Concept X) (D : Measure X)
     [IsProbabilityMeasure D] (ε : ℝ) (m : ℕ) (S : Fin (2 * m) → X)
@@ -844,7 +844,7 @@ lemma bernoulli_error_lower_bound
     file: 'Symmetrization.lean',
     label: 'Labelings on Any Sample ≤ Growth Function',
     // PLACEHOLDER:
-    naturalLanguageStatement: 'For any fixed sample S of size m, the number of distinct labelings of S by C is at most growthFunction C m. Justifies the definition by confirming the supremum is an upper bound.',
+    naturalLanguageStatement: 'For any fixed sample S of size m, the number of distinct labelings of S by C is at most growthFunction C m. Justifies the definition by confirming the supremum is an upper bound. An unused lemma from the initial formalization plan and the original natural language proof.',
     leanCode:
 `lemma card_labelings_le_growthFunction
     (C : Set (Concept X)) (m : ℕ) (S : Fin m → X) :
@@ -863,7 +863,7 @@ lemma bernoulli_error_lower_bound
     file: 'Symmetrization.lean',
     label: 'Growth Function ≤ 2^m',
     // PLACEHOLDER:
-    naturalLanguageStatement: 'The growth function satisfies growthFunction C m ≤ 2^m. A trivial upper bound confirming the supremum in the definition is finite.',
+    naturalLanguageStatement: 'The growth function satisfies growthFunction C m ≤ 2^m. A trivial upper bound confirming the supremum in the definition is finite. An unused lemma from the initial formalization plan.',
     leanCode:
 `lemma growthFunction_le_two_pow (C : Set (Concept X)) (m : ℕ) :
     growthFunction C m ≤ 2 ^ m := by
