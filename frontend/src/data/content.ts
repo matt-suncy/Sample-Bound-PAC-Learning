@@ -2,7 +2,7 @@
 
 export const aboutContent = {
   // PLACEHOLDER: describe the project goal
-  goals: `[FILL IN] This project formalizes the sample complexity bound for PAC learning using the VC Symmetrization Argument (Double Sample Trick) in Lean 4 with Mathlib4. The goal is to provide a machine-verified proof that a concept class with VC dimension d can be learned from O((d/ε)log(1/ε) + (1/ε)log(1/δ)) examples, and to make this proof accessible through an interactive visualization.`,
+  goals: `In the Probably Approximately Correct (PAC) Learning model, we are given a labeling of data that we want our hypothesis to match. For a concept class, we want to know if we can reliably come up with a low error hypothesis given a batch of m datasamples. This project formalizes the VC dimension based sample complexity bound for PAC learning using the Double Sample Trick in Lean 4 with Mathlib4. The goal is to provide a machine-verified proof that a concept class with VC dimension d can be learned from O((d/ε)log(1/ε) + (1/ε)log(1/δ)) examples.`,
 
   authors: [
     { name: 'Erin Jaen', photoSrc: '' },   // PLACEHOLDER: set photoSrc to an image path or URL
