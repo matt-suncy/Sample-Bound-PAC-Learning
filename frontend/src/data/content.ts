@@ -11,13 +11,30 @@ export const aboutContent = {
 }
 
 export const methodsContent = {
-  // PLACEHOLDER: describe the initial approach taken
-  initial: `[FILL IN] Describe the initial formalization approach here. What was attempted first, what tools or strategies were used, and what challenges emerged.`,
-
-  // PLACEHOLDER: describe the final approach taken
-  final: `[FILL IN] Describe the final formalization approach here. How did the strategy evolve? What key lemmas or Mathlib abstractions made the proof possible?`,
-
   // PLACEHOLDER: replace with the actual GitHub repository URL
   githubUrl: 'https://github.com/[FILL IN]/MAM-final-project',
   githubLabel: 'GitHub',
+}
+
+export const thoughtsLessonsContent = {
+  sections: [
+    {
+      // PLACEHOLDER: replace with section title
+      title: '[FILL IN] Section Title 1',
+      // PLACEHOLDER: replace with section body
+      body: '[FILL IN] Paragraph text for section 1.',
+    },
+    {
+      // PLACEHOLDER: replace with section title
+      title: '[FILL IN] Section Title 2',
+      // PLACEHOLDER: replace with section body
+      body: '[FILL IN] Paragraph text for section 2.',
+    },
+    {
+      // PLACEHOLDER: replace with section title
+      title: '[FILL IN] Section Title 3',
+      // PLACEHOLDER: replace with section body
+      body: '[FILL IN] Paragraph text for section 3.',
+    },
+  ],
 }

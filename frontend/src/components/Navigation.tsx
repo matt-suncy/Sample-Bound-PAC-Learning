@@ -5,7 +5,7 @@ const ALL_PAGES = [
   { path: '/',             label: 'Home' },
   { path: '/main-theorem', label: 'Main Theorem' },
   { path: '/about',        label: 'About' },
-  { path: '/methods',      label: 'Methods' },
+  { path: '/methods',      label: 'Thoughts & Lessons' },
 ]
 
 export default function Navigation() {

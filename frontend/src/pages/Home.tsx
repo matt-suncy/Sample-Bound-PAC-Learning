@@ -4,6 +4,7 @@ import MainTheoremBox from '../components/MainTheoremBox'
 import DefinitionsBox from '../components/DefinitionsBox'
 import CodePopup from '../components/CodePopup'
 import type { TheoremNodeData } from '../data/graphData'
+import { methodsContent } from '../data/content'
 
 export default function Home() {
   const [codeNode, setCodeNode] = useState<TheoremNodeData | null>(null)
@@ -30,6 +31,19 @@ export default function Home() {
           style={{ fontSize: '0.9375rem', marginTop: '1.25rem', marginBottom: 0 }}
         >
           Erin Jaen and Matthew Sun
+        </p>
+
+        {/* GitHub link */}
+        <p className="text-center" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
+          <a
+            href={methodsContent.githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-inter text-[#888888] hover:text-[#111111] transition-colors"
+            style={{ fontSize: '0.8125rem' }}
+          >
+            {methodsContent.githubUrl}
+          </a>
         </p>
 
         {/* Main Theorem Box */}
