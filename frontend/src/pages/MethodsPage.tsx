@@ -1,5 +1,6 @@
 import Navigation from '../components/Navigation'
 import { thoughtsLessonsContent } from '../data/content'
+import MathText from '../components/MathText'
 
 export default function MethodsPage() {
   return (
@@ -43,12 +44,12 @@ export default function MethodsPage() {
               >
                 {section.title}
               </h3>
-              <p
+              <MathText
+                block
+                text={section.body}
                 className="font-inter text-[#444444]"
-                style={{ fontSize: '0.9375rem', lineHeight: 1.7, margin: 0 }}
-              >
-                {section.body}
-              </p>
+                style={{ fontSize: '0.9375rem', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}
+              />
             </div>
           ))}
         </div>
