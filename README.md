@@ -9,9 +9,7 @@ The objective is to formalize the sample complexity upper bound for PAC learning
 ## The Double Sample Argument
 
 Let $D$ be a distribution over the domain $X \times \{0,1\}$. Draw $2m$ samples from $EX[c, D]$, an oracle for a target concept $c \in \mathcal{C}$. Call the first $m$ samples $S_1$ and second $m$ samples $S_2$. Consider events $A, B$
-\begin{itemize}
-    \item $A:$ some hypothesis $h \in \mathcal{C}$ with error-rate $> \epsilon$ on the distribution gets all of $S_1$ right.
-    \item $B:$ some hypothesis $h \in \mathcal{C}$ gets all of $S_1$ right and is wrong on $\ge \epsilon/2\cdot m$ elements of $S_2$
-\end{itemize}
+- $A:$ some hypothesis $h \in \mathcal{C}$ with error-rate $> \epsilon$ on the distribution gets all of $S_1$ right.
+- $B:$ some hypothesis $h \in \mathcal{C}$ gets all of $S_1$ right and is wrong on $\ge \epsilon/2\cdot m$ elements of $S_2$
 The Double Sample argument argues that for $m \ge 8/\epsilon$, $\Pr[A] \le \Pr[B]$. This shows that any hypothesis with a true error rate greater than $\epsilon$ is unlikely to be consistent with $S_1$, which is the requirement for PAC learning.
 
